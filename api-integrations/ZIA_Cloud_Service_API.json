@@ -1,0 +1,859 @@
+{
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "flows": {
+          "clientCredentials": {
+            "scopes": {},
+            "x-cs-client-secret": "[SECRET]"
+          }
+        },
+        "type": "oauth2",
+        "x-cs-client-id-label": "client_id",
+        "x-cs-client-secret-label": "client_secret"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "email": "ssharma12@crowdstrike.com"
+    },
+    "description": "ZIA Cloud Service API",
+    "title": "ZIA Cloud Service API",
+    "version": ""
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/sandbox/report/{md5Hash}": {
+      "get": {
+        "description": "Gets sandbox report for an md5 hash",
+        "operationId": "_GET_Sandbox_Report",
+        "parameters": [
+          {
+            "description": "md5 hash",
+            "in": "path",
+            "name": "md5Hash",
+            "required": true,
+            "schema": {
+              "description": "md5 hash",
+              "title": "Md5Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "details",
+            "schema": {
+              "title": "details",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                  "properties": {
+                    "Summary": {
+                      "properties": {
+                        "Classification": {
+                          "properties": {
+                            "Category": {
+                              "title": "Category",
+                              "type": "string"
+                            },
+                            "DetectedMalware": {
+                              "title": "DetectedMalware",
+                              "type": "string"
+                            },
+                            "Score": {
+                              "title": "Score",
+                              "type": "integer"
+                            },
+                            "Type": {
+                              "title": "Type",
+                              "type": "string"
+                            }
+                          },
+                          "title": "Classification",
+                          "type": "object"
+                        },
+                        "FileProperties": {
+                          "properties": {
+                            "DigitalCerificate": {
+                              "title": "DigitalCerificate",
+                              "type": "string"
+                            },
+                            "FileSize": {
+                              "title": "FileSize",
+                              "type": "integer"
+                            },
+                            "FileType": {
+                              "title": "FileType",
+                              "type": "string"
+                            },
+                            "Issuer": {
+                              "title": "Issuer",
+                              "type": "string"
+                            },
+                            "MD5": {
+                              "title": "MD5",
+                              "type": "string"
+                            },
+                            "RootCA": {
+                              "title": "RootCA",
+                              "type": "string"
+                            },
+                            "SHA1": {
+                              "title": "SHA1",
+                              "type": "string"
+                            },
+                            "SSDeep": {
+                              "title": "SSDeep",
+                              "type": "string"
+                            },
+                            "Sha256": {
+                              "format": "sha256",
+                              "title": "Sha256",
+                              "type": "string"
+                            }
+                          },
+                          "title": "FileProperties",
+                          "type": "object"
+                        },
+                        "Summary": {
+                          "properties": {
+                            "Category": {
+                              "title": "Category",
+                              "type": "string"
+                            },
+                            "Duration": {
+                              "title": "Duration",
+                              "type": "integer"
+                            },
+                            "FileType": {
+                              "title": "FileType",
+                              "type": "string"
+                            },
+                            "StartTime": {
+                              "title": "StartTime",
+                              "type": "integer"
+                            },
+                            "Status": {
+                              "title": "Status",
+                              "type": "string"
+                            }
+                          },
+                          "title": "Summary",
+                          "type": "object"
+                        }
+                      },
+                      "title": "Summary",
+                      "type": "object"
+                    }
+                  },
+                  "title": "Body",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Gets sandbox report for an md5 hash",
+            "expose_response_codes": true,
+            "expose_to_workflow": true,
+            "name": "Get ZIA Sandbox Report",
+            "system": false
+          }
+        }
+      }
+    },
+    "/status/activate": {
+      "post": {
+        "operationId": "_POST__status_activate",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "schema": {
+              "title": "Content-Type",
+              "type": "string",
+              "x-cs-ui": {
+                "skip": true
+              }
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "Json",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": null,
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Activates/saves ZIA configuration changes",
+            "expose_to_workflow": true,
+            "name": "Activate Changes",
+            "system": false
+          }
+        }
+      }
+    },
+    "/urlCategories": {
+      "post": {
+        "operationId": "POST__urlcategories",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "schema": {
+              "title": "Content-Type",
+              "type": "string",
+              "x-cs-ui": {
+                "skip": true
+              }
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft-07/schema",
+                "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                "properties": {
+                  "configuredName": {
+                    "default": "CrowdStrike Intel - Foundry",
+                    "title": "ConfiguredName",
+                    "type": "string"
+                  },
+                  "customCategory": {
+                    "const": "true",
+                    "title": "CustomCategory",
+                    "type": "string"
+                  },
+                  "superCategory": {
+                    "const": "USER_DEFINED",
+                    "title": "SuperCategory",
+                    "type": "string"
+                  },
+                  "urls": {
+                    "default": [
+                      "n0thingH3r3.org"
+                    ],
+                    "items": {
+                      "title": "Urls",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "title": "Json",
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                  "properties": {
+                    "configuredName": {
+                      "title": "ConfiguredName",
+                      "type": "string"
+                    },
+                    "customCategory": {
+                      "title": "CustomCategory",
+                      "type": "boolean"
+                    },
+                    "customIpRangesCount": {
+                      "title": "CustomIpRangesCount",
+                      "type": "integer"
+                    },
+                    "customUrlsCount": {
+                      "title": "CustomUrlsCount",
+                      "type": "integer"
+                    },
+                    "dbCategorizedUrls": {
+                      "items": {
+                        "title": "DbCategorizedUrls",
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "editable": {
+                      "title": "Editable",
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "title": "ID",
+                      "type": "string"
+                    },
+                    "ipRangesRetainingParentCategoryCount": {
+                      "title": "IpRangesRetainingParentCategoryCount",
+                      "type": "integer"
+                    },
+                    "keywords": {
+                      "items": {
+                        "title": "Keywords",
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "keywordsRetainingParentCategory": {
+                      "items": {
+                        "title": "KeywordsRetainingParentCategory",
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "superCategory": {
+                      "title": "SuperCategory",
+                      "type": "string"
+                    },
+                    "type": {
+                      "title": "Type",
+                      "type": "string"
+                    },
+                    "urls": {
+                      "items": {
+                        "title": "Urls",
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "urlsRetainingParentCategoryCount": {
+                      "title": "UrlsRetainingParentCategoryCount",
+                      "type": "integer"
+                    },
+                    "val": {
+                      "title": "Val",
+                      "type": "integer"
+                    }
+                  },
+                  "title": "Body",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Create URL Category",
+            "expose_response_codes": true,
+            "expose_to_workflow": true,
+            "name": "Create URL Category",
+            "system": false
+          }
+        }
+      }
+    },
+    "/urlCategories/lite": {
+      "get": {
+        "operationId": "_GET_urlcategories_lite",
+        "responses": {
+          "2XX": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                  "items": {
+                    "properties": {
+                      "configuredName": {
+                        "title": "ConfiguredName",
+                        "type": "string"
+                      },
+                      "customCategory": {
+                        "title": "CustomCategory",
+                        "type": "boolean"
+                      },
+                      "customIpRangesCount": {
+                        "title": "CustomIpRangesCount",
+                        "type": "integer"
+                      },
+                      "customUrlsCount": {
+                        "title": "CustomUrlsCount",
+                        "type": "integer"
+                      },
+                      "dbCategorizedUrls": {
+                        "items": {
+                          "title": "DbCategorizedUrls",
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "editable": {
+                        "title": "Editable",
+                        "type": "boolean"
+                      },
+                      "id": {
+                        "title": "ID",
+                        "type": "string"
+                      },
+                      "ipRangesRetainingParentCategoryCount": {
+                        "title": "IpRangesRetainingParentCategoryCount",
+                        "type": "integer"
+                      },
+                      "type": {
+                        "title": "Type",
+                        "type": "string"
+                      },
+                      "urls": {
+                        "items": {
+                          "title": "Urls",
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "urlsRetainingParentCategoryCount": {
+                        "title": "UrlsRetainingParentCategoryCount",
+                        "type": "integer"
+                      },
+                      "val": {
+                        "title": "Val",
+                        "type": "integer"
+                      }
+                    },
+                    "title": "Body",
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Get URL Categories lite",
+            "expose_response_codes": true,
+            "expose_to_workflow": true,
+            "name": "Get URL Categories lite",
+            "system": false
+          }
+        }
+      }
+    },
+    "/urlCategories/urlQuota": {
+      "get": {
+        "operationId": "_GET__urlcategories_urlquota",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "schema": {
+              "title": "Content-Type",
+              "type": "string",
+              "x-cs-ui": {
+                "skip": true
+              }
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                  "properties": {
+                    "remainingUrlsQuota": {
+                      "type": "integer"
+                    },
+                    "uniqueUrlsProvisioned": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "headers": {
+              "Content-type": {
+                "schema": {
+                  "default": "application/json",
+                  "enum": [
+                    "application/json"
+                  ],
+                  "title": "Content-type",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Returns custom URLs remaining in ZIA tenant",
+            "expose_to_workflow": true,
+            "name": "Get URL Quota",
+            "system": false
+          }
+        }
+      }
+    },
+    "/urlCategories/{ID}": {
+      "get": {
+        "operationId": "_GET_urlcategories_details",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ID",
+            "required": true,
+            "schema": {
+              "title": "ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                  "properties": {
+                    "customCategory": {
+                      "type": "boolean"
+                    },
+                    "customIpRangesCount": {
+                      "type": "integer"
+                    },
+                    "customUrlsCount": {
+                      "type": "integer"
+                    },
+                    "dbCategorizedUrls": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "editable": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "ipRangesRetainingParentCategoryCount": {
+                      "type": "integer"
+                    },
+                    "keywords": {
+                      "items": {},
+                      "type": "array"
+                    },
+                    "keywordsRetainingParentCategory": {
+                      "items": {},
+                      "type": "array"
+                    },
+                    "superCategory": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "urls": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "urlsRetainingParentCategoryCount": {
+                      "type": "integer"
+                    },
+                    "val": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Gets details of a custom URL category",
+            "expose_to_workflow": true,
+            "name": "Get URL category details",
+            "system": false
+          }
+        }
+      },
+      "put": {
+        "operationId": "_PUT__urlcategories",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ID",
+            "required": true,
+            "schema": {
+              "title": "ID",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "enum": [
+                "ADD_TO_LIST"
+              ],
+              "title": "Action",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft-07/schema",
+                "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                "properties": {
+                  "configuredName": {
+                    "title": "ConfiguredName",
+                    "type": "string"
+                  },
+                  "customCategory": {
+                    "const": "TRUE",
+                    "default": "TRUE",
+                    "title": "CustomCategory",
+                    "type": "string"
+                  },
+                  "superCategory": {
+                    "default": "USER_DEFINED",
+                    "title": "SuperCategory",
+                    "type": "string"
+                  },
+                  "urls": {
+                    "items": {
+                      "title": "Urls",
+                      "type": "string"
+                    },
+                    "title": "Urls",
+                    "type": "array"
+                  }
+                },
+                "title": "Json",
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": null,
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Pushes a list of URLs to a custom URL Category in ZIA",
+            "expose_to_workflow": true,
+            "name": "Push IOCs to ZIA",
+            "system": false
+          }
+        }
+      }
+    },
+    "/urlCategories?customOnly=true": {
+      "get": {
+        "operationId": "_GET__urlcategories",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "schema": {
+              "title": "Content-Type",
+              "type": "string",
+              "x-cs-ui": {
+                "skip": true
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "customOnly",
+            "schema": {
+              "title": "CustomOnly",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                  "items": {
+                    "properties": {
+                      "configuredName": {
+                        "type": "string"
+                      },
+                      "customCategory": {
+                        "type": "boolean"
+                      },
+                      "customIpRangesCount": {
+                        "type": "integer"
+                      },
+                      "customUrlsCount": {
+                        "type": "integer"
+                      },
+                      "dbCategorizedUrls": {
+                        "items": {},
+                        "type": "array"
+                      },
+                      "editable": {
+                        "type": "boolean"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "ipRangesRetainingParentCategoryCount": {
+                        "type": "integer"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "urls": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "urlsRetainingParentCategoryCount": {
+                        "type": "integer"
+                      },
+                      "val": {
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "x-cs-operation-config": {
+          "workflow": {
+            "description": "Lists available custom URL categories in ZIA",
+            "expose_to_workflow": true,
+            "name": "List custom URL categories",
+            "system": false
+          }
+        }
+      }
+    },
+    "/urlLookup": {
+      "post": {
+        "operationId": "_POST__urllookup",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "schema": {
+              "title": "Content-Type",
+              "type": "string",
+              "x-cs-ui": {
+                "skip": true
+              }
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft-07/schema",
+                "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                "items": {
+                  "title": "Json",
+                  "type": "string"
+                },
+                "title": "Urls",
+                "type": "array"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct.",
+                  "items": {
+                    "properties": {
+                      "url": {
+                        "title": "URL",
+                        "type": "string"
+                      },
+                      "urlClassifications": {
+                        "items": {
+                          "title": "UrlClassifications",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "urlClassificationsWithSecurityAlert": {
+                        "items": {
+                          "title": "UrlClassificationsWithSecurityAlert",
+                          "type": "object"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "title": "Body",
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "x-cs-operation-config": {
+          "autocomplete": {
+            "display_field": "url",
+            "id_field": "url"
+          },
+          "workflow": {
+            "description": "Post a batch of URLs to ZIA's URL Lookup API",
+            "expose_response_codes": true,
+            "expose_to_workflow": true,
+            "name": "Look Up URLs",
+            "system": false
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "{host}/api/v1",
+      "variables": {
+        "host": {
+          "description": "the \"host\" variable is replaced with a dynamic value at execution time"
+        }
+      }
+    }
+  ],
+  "x-cs-multi-instance": true
+}

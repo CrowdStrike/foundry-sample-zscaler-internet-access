@@ -1,0 +1,152 @@
+app_id:
+name: Zscaler Internet Access
+description: Integrates Zscaler Internet Access (ZIA) with Falcon's Threat Intelligence and Falcon Next-Gen SIEM to achieve more effective inline blocking.
+logo: app_docs/images/logo.png
+vendor: ""
+vendor_products: []
+use_case: Cloud security
+manifest_version: "2023-05-09"
+ignored: []
+ui:
+    homepage: ""
+    extensions: []
+    pages: {}
+    dashboards: {}
+    navigation: {}
+api_integrations:
+    - id: a0f2a4f80d3e441cb93db1c95e1cc7c9
+      name: ZIA Cloud Service API
+      description: ""
+      path: api-integrations/ZIA_Cloud_Service_API.json
+rtr_scripts: []
+collections: []
+auth:
+    scopes:
+        - falconx-indicators:read
+        - workflow:read
+        - iocs:write
+        - app-logs:write
+        - workflow:write
+        - api-integrations:read
+        - api-integrations:write
+        - app-logs:read
+    permissions: {}
+    roles: []
+functions:
+    - id: 54e0e02800cb4488b93f641d24be8d7e
+      name: iterations
+      config: null
+      description: Utility function for controlling number of pull-lookup-urls iterations in fusion workflow
+      path: functions/iterations
+      environment_variables: {}
+      handlers:
+        - name: iterations-handler
+          description: Utility function for controlling number of pull-lookup-urls iterations in fusion workflow
+          method: GET
+          api_path: /iterations
+          payload_type: ""
+          request_schema: schemas/inputSchema.json
+          response_schema: schemas/outputSchema.json
+          workflow_integration:
+            id: 7a5a6cb56bde49588d67daf180f6afb5
+            disruptive: false
+            system_action: false
+            tags: []
+          permissions: []
+      language: python
+    - id: 903e64c5f1d84c49a3a00a33a2ed93e5
+      name: extract
+      config: null
+      description: Utility function for extracting URLs to be pushed to Zscaler
+      path: functions/extract
+      environment_variables: {}
+      handlers:
+        - name: extract-handler
+          description: Utility function for extracting URLs to be pushed to Zscaler
+          method: POST
+          api_path: /extract
+          payload_type: ""
+          request_schema: schemas/inputSchema.json
+          response_schema: schemas/outputSchema.json
+          workflow_integration:
+            id: 6a01f0c7a3104956a6ee6d53b1f8fcf0
+            disruptive: false
+            system_action: false
+            tags: []
+          permissions: []
+      language: python
+    - id: 4bbc0044871747f9a9620a6943be63c1
+      name: push-iocs-to-zia
+      config: null
+      description: Utility function for pushing IOCs to ZIA
+      path: functions/push-iocs-to-zia
+      environment_variables: {}
+      handlers:
+        - name: push-iocs-to-zia-handler
+          description: Utility function for pushing IOCs to ZIA
+          method: POST
+          api_path: /push-iocs-to-zia
+          payload_type: ""
+          request_schema: schemas/inputSchema.json
+          response_schema: schemas/outputSchema.json
+          workflow_integration:
+            id: 47cc37dcb5214ebc9c3626348b3af02a
+            disruptive: false
+            system_action: false
+            tags: []
+          permissions: []
+      language: python
+      max_exec_duration_seconds: 900
+    - id: dca75c15be014f79b7887b18a8153bdd
+      name: get-url-category
+      config: null
+      description: Utility function for getting URL category name and ID using Zscaler API
+      path: functions/get-url-category
+      environment_variables: {}
+      handlers:
+        - name: get-url-category
+          description: Utility function for getting URL category name and ID using Zscaler API
+          method: GET
+          api_path: /get-url-category
+          payload_type: ""
+          request_schema: schemas/inputSchema.json
+          response_schema: schemas/outputSchema.json
+          workflow_integration:
+            id: 6677fbc410f6496a94877ae04bf89bfa
+            disruptive: false
+            system_action: false
+            tags: []
+          permissions: []
+      language: python
+    - id: 84236c2292c54fdf84fb44d8e8b45765
+      name: pull-lookup-urls
+      config: null
+      description: Pull high-confidence malicious URLs from Falcon Intel Indicators database and lookup using Zscaler API
+      path: functions/pull-lookup-urls
+      environment_variables: {}
+      handlers:
+        - name: pull-lookup-urls
+          description: Pull high-confidence malicious URLs from Falcon Intel Indicators database and lookup using Zscaler API
+          method: GET
+          api_path: /pull-lookup-urls
+          payload_type: ""
+          request_schema: schemas/inputSchema.json
+          response_schema: schemas/outputSchema.json
+          workflow_integration:
+            id: f74e025a152b4ea6a7ff95e2cc71e6f5
+            disruptive: false
+            system_action: false
+            tags: []
+          permissions: []
+      language: python
+      max_exec_duration_seconds: 900
+workflows:
+    - id: daddca3c429c45c8b00786c9a4b95017
+      name: Falcon-Zscaler Integration
+      path: workflows/ZscalerIntegration.yml
+      permissions: []
+parsers: []
+logscale:
+    saved_searches: []
+lookup_files: []
+docs: {}

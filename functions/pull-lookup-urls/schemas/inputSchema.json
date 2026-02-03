@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "properties": {
+    "offset":{
+      "type": "string"
+    },
+    "apiDefinitionId": {
+      "type": "string",
+      "description": "API integration definition ID"
+    },
+    "apiOperationId": {
+      "type": "string",
+      "description": "API integration operation ID"
+    },
+    "retryBackoffSchedule": {
+      "description": "Zscaler API retry backoff schedule",
+      "items": {
+        "type": "integer"
+      },
+      "type": "array"
+    }
+  },
+  "type": "object",
+  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct."
+}
