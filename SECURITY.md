@@ -2,7 +2,7 @@
 
 # Security Policy
 
-This document outlines security policy and procedures for the CrowdStrike `$REPOSITORY_NAME` project.
+This document outlines security policy and procedures for the CrowdStrike `foundry-sample-zscaler-internet-access` project.
 
 ## Reporting a potential security vulnerability
 

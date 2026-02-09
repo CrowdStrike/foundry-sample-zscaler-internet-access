@@ -1,25 +1,38 @@
 ![CrowdStrike Falcon](/images/cs-logo.png?raw=true)
 
-# $SAMPLE_NAME sample Foundry app
+# Zscaler Internet Access sample Foundry app
 
-The $SAMPLE_NAME sample Foundry app is a community-driven, open source project which serves as an example of an app which can be built using CrowdStrike's Foundry ecosystem. `$REPOSITORY_NAME` is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
+The Zscaler Internet Access sample Foundry app is a community-driven, open source project which serves as an example of an app which can be built using CrowdStrike's Foundry ecosystem.
+`foundry-sample-zscaler-internet-access` is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
 
-This app is one of several App Templates included in Foundry that you can use to jumpstart your development. It comes complete with a set of preconfigured capabilities aligned to its business purpose. Deploy this app from the Templates page with a single click in the Foundry UI, or create an app from this template using the CLI.
+This app is one of several App Templates included in Foundry that you can use to jumpstart your development. It comes complete with a set of
+preconfigured capabilities aligned to its business purpose. Deploy this app from the Templates page with a single click in the Foundry UI, or
+create an app from this template using the CLI.
 
 > [!IMPORTANT]  
 > To view documentation and deploy this sample app, you need access to the Falcon console.
 
 ## Description
 
-_A description of this app's use case and what it does._
+Organizations need effective integration between their threat intelligence and web security infrastructure to proactively block malicious URLs before they can cause harm. The Zscaler Internet Access sample Foundry app automates this critical security workflow by bridging CrowdStrike's threat intelligence with Zscaler's inline blocking capabilities.
+
+This application helps security teams:
+
+* Automatically identify high-confidence malicious URLs from CrowdStrike Falcon Intelligence.
+* Verify URL categorization status in Zscaler Internet Access.
+* Push uncategorized or unknown malicious URLs to custom ZIA URL categories for immediate blocking.
+* Maintain continuous protection through automated, scheduled workflows.
+
+This app illustrates the following functionality amongst other components:
+* Pull high-confidence malicious URL indicators from CrowdStrike Falcon Intelligence.
+* Perform URL lookups against Zscaler's categorization database.
+* Automatically push malicious URLs to a custom Zscaler URL category for inline blocking.
+* Handle API rate limiting with intelligent retry logic.
 
 ## Prerequisites
 
-* The Foundry CLI (instructions below).
-* _Delete or add tools below as required. These are from other samples._
-* Python 3.13+ (needed if modifying the app's functions). See [Python For Beginners](https://www.python.org/about/gettingstarted/) for installation instructions.
-* Go v1.23+ (needed if modifying the app's functions). See https://go.dev/learn for installation instructions.
-* Yarn (needed if modifying the app's UI). See https://yarnpkg.com/getting-started for installation instructions.
+* The Foundry CLI (instructions below)
+* Zscaler Internet Access Configuration
 
 ### Install the Foundry CLI
 
@@ -47,13 +60,31 @@ brew install crowdstrike/foundry-cli/foundry
 
 Run `foundry version` to verify it's installed correctly.
 
+### Zscaler Internet Access Configuration
+
+#### 1. Set up Zscaler API credentials:
+1. Log in to your Zscaler Internet Access (ZIA) admin portal
+2. Navigate to **Administration** > **Authentication** > **Cloud Service API Security**
+3. Generate or retrieve your API credentials:
+4. Securely store these credentials for use during app installation
+
+#### 2. Create a custom URL category in ZIA:
+1. In the ZIA admin portal, go to **Administration** > **Resources** > **Access Control** > **URL Categories**
+2. Click **Add URL Category**
+3. Create a custom category with a name like **"CrowdStrike Intel - Foundry"**
+4. Set the **Super Category** to **User-Defined**
+5Note the exact category name for use during app installation
+
+> [!NOTE]
+> Contact your Zscaler representative if you're unsure about your entitlements.
+
 ## Getting Started
 
-Clone this sample to your local system, or [download as a zip file](https://github.com/CrowdStrike/$REPOSITORY_NAME/archive/refs/heads/main.zip) and import it into Foundry.
+Clone this sample to your local system, or [download as a zip file](https://github.com/CrowdStrike/foundry-sample-zscaler-internet-access/archive/refs/heads/main.zip).
 
 ```shell
-git clone https://github.com/CrowdStrike/$REPOSITORY_NAME
-cd $REPOSITORY_NAME
+git clone https://github.com/CrowdStrike/foundry-sample-zscaler-internet-access
+cd foundry-sample-zscaler-internet-access
 ```
 
 Log in to Foundry:
@@ -84,11 +115,70 @@ Once the deployment has finished, you can release the app:
 foundry apps release
 ```
 
-Next, go to **Foundry** > **App catalog**, find your app, and install it. Go to **Fusion SOAR** > **Workflows** to see the scheduled workflow from this app.
+Next, go to **Foundry** > **App catalog**, find your app, and install. During app install, you will be prompted for app configuration:
+
+* (API-Integration) ZIA Cloud Service API credentials:
+  * **Host**: Your Zscaler cloud hostname
+  * **client_id**: Your Zscaler API clientId
+  * **client_secret**: Your Zscaler client secret
+  * **token URL**: Your Zscaler cloud OAuth token endpoint URL 
+
+    **Example**: 
+    <p><img width="500px" src="/app_docs/images/api-settings.png?raw=true">
+
+* (Workflow) Falcon-Zscaler Integration configuration:
+  * **UrlCategoryConfiguredName**: The name of your custom ZIA URL category (e.g., "CrowdStrike Intel - Foundry")
+  * **Quantity**: Maximum number of URLs to process. Controls pagination - the  **iterations** function divides this by 100 to process URLs in batches (e.g., quantity of 500 creates 5 batches: offsets values [0, 100, 200, 300, 400])
+
+    **Example**:
+    <p><img width="500px" src="/app_docs/images/workflow-setting.png?raw=true">
+
+> [!TIP]
+> The custom URL category name must match exactly (case-sensitive) with the category you created in Zscaler.
+
+After installation, navigate to **Fusion SOAR** > **Workflows** and locate the **Falcon-Zscaler Integration** workflow. You can:
+* Run it on-demand to immediately sync malicious URLs
+* Can also modify to run automatically (recommended: daily or multiple times per day)
 
 ## About this sample app
 
-_Describe your app and its components._
+### Foundry capabilities used
+
+* **API Integration.** Used to connect to Zscaler Internet Access (ZIA) Cloud Service API.
+* **Functions.** Five custom Python functions handle:
+  * Controlling workflow iteration logic
+  * Retrieving ZIA URL category details
+  * Pulling high-confidence malicious URLs from Falcon Intelligence
+  * Looking up URLs in Zscaler's categorization database
+  * Extracting uncategorized/unknown URLs for blocking
+* **Workflow templates.** Orchestrates the automated process of pulling high-confidence malicious URLs from Falcon Intelligence, looking them up in Zscaler to check categorization, filtering uncategorized/unknown URLs, and pushing them to a custom ZIA URL category for inline blocking.
+
+### Directory structure
+
+* [`api-integrations`](api-integrations)
+    * [`ZIA_Cloud_Service_API.json`](api-integrations/ZIA_Cloud_Service_API.json): API-Integration to integrate with Zscaler Internet Access Cloud Service API to perform URL lookups, URL category management, Push IOCs to ZIA and activate changes.
+
+* [`functions`](functions)
+    * [`pull-lookup-urls`](functions/pull-lookup-urls): Pulls high-confidence malicious URL indicators from CrowdStrike Falcon Intelligence API and performs batch URL lookups against Zscaler's categorization database. Includes retry logic for rate limiting.
+    * [`extract`](functions/extract): Extracts and filters URLs from Zscaler lookup results to identify malicious URLs that are uncategorized or classified as unknown/miscellaneous.
+    * [`push-iocs-to-zia`](functions/push-iocs-to-zia): Pushes filtered malicious URLs to a specified custom URL category in Zscaler for inline blocking. Includes retry logic for API rate limiting.
+    * [`get-url-category`](functions/get-url-category): Retrieves URL category details from Zscaler by category name, returning the category ID needed for pushing IOCs.
+    * [`iterations`](functions/iterations): Utility function that calculates the number of iterations needed for paginated API calls based on total URL count.
+
+* [`workflows`](workflows)
+    * [`ZscalerIntegration.yml`](workflows/ZscalerIntegration.yml): Main orchestration workflow that:
+      1. Retrieves the target ZIA custom URL category details
+      2. Determines pagination requirements for URL processing
+      3. Iteratively pulls URLs from Falcon Intel and looks them up in Zscaler
+      4. Extracts uncategorized/unknown malicious URLs
+      5. Pushes identified URLs to the custom ZIA URL category
+      6. Activates changes in Zscaler to apply the new blocks
+      7. Logs all operations for audit and troubleshooting
+
+> [!NOTE]
+> * The workflow processes URLs in batches of 100 to optimize API performance and stay within rate limits.
+> * URLs are added to the custom category but never automatically removed.
+> * The workflow should be scheduled based on your organization's threat intelligence refresh requirements (recommended: daily or multiple times per day).
 
 ## Foundry resources
 
@@ -97,5 +187,5 @@ _Describe your app and its components._
 
 ---
 
-<p align="center"><img src="/images/cs-logo-footer.png"><br/><img width="300px" src="/images/adversary-goblin-panda.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo-footer.png"><BR/><img width="300px" src="https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/adversary-goblin-panda.png"></P>
 <h3><p align="center">WE STOP BREACHES</p></h3>
