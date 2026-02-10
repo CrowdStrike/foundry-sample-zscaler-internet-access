@@ -51,8 +51,7 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 
     zscaler_response = push_iocs_to_zia_with_retry(
         logger, definition_id, operation_id, url_category_name,
-        category_id, action, custom_category, super_category, urls,
-        max_retries=3, backoff_schedule=None)
+        category_id, action, custom_category, super_category, urls)
     if zscaler_response["status_code"] != 200:
         logger.error("Zscaler API return non 200 status code")
         body = zscaler_response.get("body", {})
@@ -72,12 +71,11 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 
 def push_iocs_to_zia_with_retry(
         logger, definition_id, operation_id, url_category_name,
-        category_id, action, custom_category, super_category, urls, *,
-        max_retries=3, backoff_schedule=None):
+        category_id, action, custom_category, super_category, urls):
     """Perform Push IOCs to ZIA with retry logic."""
 
-    if backoff_schedule is None:
-        backoff_schedule = [2, 3, 5]
+    max_retries = 3
+    backoff_schedule = [2, 3, 5]
 
     # Retry-able status codes
     retryable_codes = {

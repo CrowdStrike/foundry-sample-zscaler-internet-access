@@ -62,8 +62,7 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 
         # Perform URL lookup with Zscaler API (with retry logic)
         zscaler_response = url_lookup_with_retry(
-            logger, definition_id, operation_id, filtered_urls,
-            max_retries=3, backoff_schedule=None)
+            logger, definition_id, operation_id, filtered_urls)
         if zscaler_response["status_code"] != 200:
             logger.error(
                 f"Zscaler API return non 200 status code; response: {zscaler_response}")
@@ -120,12 +119,11 @@ def url_lookup(logger, definition_id, operation_id, urls):
 
 
 def url_lookup_with_retry(
-        logger, definition_id, operation_id, urls, *,
-        max_retries=3, backoff_schedule=None):
+        logger, definition_id, operation_id, urls):
     """Perform URL lookup using Zscaler API with retry logic for 429 errors."""
 
-    if backoff_schedule is None:
-        backoff_schedule = [2, 3, 5]
+    max_retries = 3
+    backoff_schedule = [2, 3, 5]
 
     retryable_codes = {
         http.HTTPStatus.TOO_MANY_REQUESTS,
