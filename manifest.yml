@@ -2,7 +2,7 @@ app_id:
 name: Zscaler Internet Access
 description: Integrates Zscaler Internet Access (ZIA) with Falcon's Threat Intelligence and Falcon Next-Gen SIEM to achieve more effective inline blocking.
 logo: app_docs/images/logo.png
-vendor: ""
+vendor: "Zscaler"
 vendor_products: []
 use_case: Cloud security
 manifest_version: "2023-05-09"
@@ -14,7 +14,7 @@ ui:
     dashboards: {}
     navigation: {}
 api_integrations:
-    - id: a0f2a4f80d3e441cb93db1c95e1cc7c9
+    - id:
       name: ZIA Cloud Service API
       description: ""
       path: api-integrations/ZIA_Cloud_Service_API.json
@@ -33,7 +33,7 @@ auth:
     permissions: {}
     roles: []
 functions:
-    - id: 54e0e02800cb4488b93f641d24be8d7e
+    - id:
       name: iterations
       config: null
       description: Utility function for controlling number of pull-lookup-urls iterations in fusion workflow
@@ -54,7 +54,7 @@ functions:
             tags: []
           permissions: []
       language: python
-    - id: 903e64c5f1d84c49a3a00a33a2ed93e5
+    - id:
       name: extract
       config: null
       description: Utility function for extracting URLs to be pushed to Zscaler
@@ -75,7 +75,7 @@ functions:
             tags: []
           permissions: []
       language: python
-    - id: 4bbc0044871747f9a9620a6943be63c1
+    - id:
       name: push-iocs-to-zia
       config: null
       description: Utility function for pushing IOCs to ZIA
@@ -97,7 +97,7 @@ functions:
           permissions: []
       language: python
       max_exec_duration_seconds: 900
-    - id: dca75c15be014f79b7887b18a8153bdd
+    - id:
       name: get-url-category
       config: null
       description: Utility function for getting URL category name and ID using Zscaler API
@@ -118,7 +118,7 @@ functions:
             tags: []
           permissions: []
       language: python
-    - id: 84236c2292c54fdf84fb44d8e8b45765
+    - id:
       name: pull-lookup-urls
       config: null
       description: Pull high-confidence malicious URLs from Falcon Intel Indicators database and lookup using Zscaler API
@@ -141,7 +141,7 @@ functions:
       language: python
       max_exec_duration_seconds: 900
 workflows:
-    - id: daddca3c429c45c8b00786c9a4b95017
+    - id:
       name: Falcon-Zscaler Integration
       path: workflows/ZscalerIntegration.yml
       permissions: []
@@ -149,4 +149,10 @@ parsers: []
 logscale:
     saved_searches: []
 lookup_files: []
-docs: {}
+docs:
+  id:
+  path: app_docs
+  entrypoint: README.md
+  links:
+    - images/api-settings.png
+    - images/workflow-setting.png

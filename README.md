@@ -31,6 +31,7 @@ This app illustrates the following functionality amongst other components:
 
 ## Prerequisites
 
+* Python 3.13+ (needed if modifying the app's functions). See [Python For Beginners](https://www.python.org/about/gettingstarted/) for installation instructions.
 * The Foundry CLI (instructions below)
 * Zscaler Internet Access Configuration
 
@@ -73,7 +74,7 @@ Run `foundry version` to verify it's installed correctly.
 2. Click **Add URL Category**
 3. Create a custom category with a name like **"CrowdStrike Intel - Foundry"**
 4. Set the **Super Category** to **User-Defined**
-5Note the exact category name for use during app installation
+5. Note the exact category name for use during app installation
 
 > [!NOTE]
 > Contact your Zscaler representative if you're unsure about your entitlements.

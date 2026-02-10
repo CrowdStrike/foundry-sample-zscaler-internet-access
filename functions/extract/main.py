@@ -1,38 +1,31 @@
-import os
-import re
-import json
+"""Extract and filter URLs from lookup results."""
+from logging import Logger
+
 from crowdstrike.foundry.function import Function, Request, Response
-from typing import Dict, Type
 
-func = Function.instance()
+FUNC = Function.instance()
 
 
-@func.handler(method='POST', path='/extract')
-def extract_handler(request: Request, config: Dict[str, any] = None) -> Response:
+@FUNC.handler(method='POST', path='/extract')
+def extract_handler(request: Request, _config, logger: Logger) -> Response:
+    """Extract URLs from lookup results based on classification criteria."""
     modeled_urls = []
-    try: 
-        print(request.body)
-        lookup_results = request.body.get("json")
-        lookup_results = lookup_results["json"]["list"]
-        for url in lookup_results:
-            print(type(url))
-            if url['urlClassificationsWithSecurityAlert']:
-                    pass
-            elif 'urlClassifications' not in url:
-                    modeled_urls.append(url['url'])
-            elif 'MISCELLANEOUS_OR_UNKNOWN' in url['urlClassifications']:
-                    modeled_urls.append(url['url'])
-            else:
-                    modeled_urls.append(url['url'])
-        print(len(modeled_urls))
-    except Exception as error:
-        print("An exception occurred:", error)
-        print("An error occurred:", type(error).__name__, "–", error)
-        error = f'{error}'
-        modeled_urls.append(error)
-        return Response(body={"urls":error},code=200)
-          
-          
+    logger.info(f"Request body: {request.body}")
+    lookup_results = request.body.get("json")
+    lookup_results = lookup_results["json"]["list"]
+    for url in lookup_results:
+        logger.info(f"Url type: {type(url)}")
+        if url['urlClassificationsWithSecurityAlert']:
+            pass
+        elif 'urlClassifications' not in url:
+            modeled_urls.append(url['url'])
+        elif 'MISCELLANEOUS_OR_UNKNOWN' in url['urlClassifications']:
+            modeled_urls.append(url['url'])
+        else:
+            modeled_urls.append(url['url'])
+
+    logger.info(f"modeled Urls: {modeled_urls}")
+
     return Response(
         body={
             "urls": modeled_urls,
@@ -40,7 +33,5 @@ def extract_handler(request: Request, config: Dict[str, any] = None) -> Response
         code=200
     )
 
-
 if __name__ == '__main__':
-    func.run()
-    
+    FUNC.run()

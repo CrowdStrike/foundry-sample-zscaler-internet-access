@@ -1,14 +1,16 @@
-import os
-import re
+"""Calculate pagination offsets for URL processing."""
+import logging
+from logging import Logger
+
 from crowdstrike.foundry.function import Function, Request, Response
-from typing import Dict, Type
 
-func = Function.instance()
+FUNC = Function.instance()
+logging.basicConfig(level=logging.INFO, force=True)
 
-
-@func.handler(method='GET', path='/iterations')
-def iterations_handler(request: Request, config: Dict[str, any] = None) -> Response:
-    print(request.body)
+@FUNC.handler(method='GET', path='/iterations')
+def iterations_handler(request: Request, _config, logger: Logger) -> Response:
+    """Calculate offsets for paginating through URL batches."""
+    logger.info(f"Request body: {request.body}")
     quantity = request.body.get("quantity")
     url_chunks = quantity/100
     offset = []
@@ -27,4 +29,4 @@ def iterations_handler(request: Request, config: Dict[str, any] = None) -> Respo
 
 
 if __name__ == '__main__':
-    func.run()
+    FUNC.run()

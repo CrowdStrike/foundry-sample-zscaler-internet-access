@@ -1,12 +1,23 @@
 version: 2
 updates:
-  - package-ecosystem: gomod
-    directories:
-      - "/functions/go-function/"
+  - package-ecosystem: pip
+    directory: "/functions/extract/"
     schedule:
       interval: weekly
   - package-ecosystem: pip
-    directory: "/functions/python-function/"
+    directory: "/functions/get-url-category/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: "/functions/iterations/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: "/functions/pull-lookup-urls/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: "/functions/push-iocs-to-zia/"
     schedule:
       interval: weekly
   - package-ecosystem: github-actions

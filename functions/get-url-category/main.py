@@ -1,17 +1,18 @@
+"""Retrieve URL category information from Zscaler."""
+import logging
+from logging import Logger
+
 from crowdstrike.foundry.function import Function, Request, Response
 from falconpy import APIIntegrations
-from logging import Logger
-import logging
 
-func = Function.instance()
+FUNC = Function.instance()
 logging.basicConfig(level=logging.INFO, force=True)
 
 
-@func.handler(method='GET', path='/get-url-category')
+@FUNC.handler(method='GET', path='/get-url-category')
 def pull_urls(request: Request, _config, logger: Logger) -> Response:
-    # API-Integration definitionId
+    """Retrieve URL category from Zscaler by configured name."""
     definition_id = request.body.get('apiDefinitionId', "")
-    # API-Integration operationID
     operation_id = request.body.get('apiOperationId', "")
 
     url_category_name = request.body.get("urlCategoryConfiguredName", "")
@@ -27,7 +28,7 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
         )
         return Response(body=response_body, code=400)
 
-    logger.info(f"Zscaler getting URL categories...")
+    logger.info("Zscaler getting URL categories...")
 
     zscaler_response = get_url_categories(logger, definition_id, operation_id)
     if zscaler_response["status_code"] != 200:
@@ -44,11 +45,14 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
     url_categories_results = zscaler_response.get('body', {}).get('resources', [])
     logger.info(f"All URL categories: {url_categories_results}")
 
-    for urlCategory in url_categories_results:
-        if urlCategory['customCategory'] and urlCategory['configuredName'] == url_category_name:
+    for url_category in url_categories_results:
+        if (url_category['customCategory'] and
+                url_category['configuredName'] == url_category_name):
             response_body['urlCategoryConfiguredName'] = url_category_name
-            response_body['urlCategoryId'] = urlCategory['id']
-            logger.info(f"found URL category '{url_category_name}' id: '{urlCategory['id']}'")
+            response_body['urlCategoryId'] = url_category['id']
+            logger.info(
+                f"found URL category '{url_category_name}' "
+                f"id: '{url_category['id']}'")
             return Response(
                 body=response_body,
                 code=200
@@ -64,11 +68,10 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 
 
 def get_url_categories(logger, definition_id, operation_id):
-    """Perform URL lookup using Zscaler API"""
+    """Perform URL lookup using Zscaler API."""
     logger.info(
         f"Getting URL categories using Zscaler API. definition_id: {definition_id}, operation_id: {operation_id}")
 
-    # Use the APIIntegrations client to call Zscaler API
     api = APIIntegrations(debug=False)
     response = api.execute_command_proxy(
         body={
@@ -88,7 +91,7 @@ def get_url_categories(logger, definition_id, operation_id):
 
 def initialize_response_body() -> dict:
     """
-    Initialize response body
+    Initialize response body.
     """
     return {
         "urlCategoryConfiguredName": "",
@@ -101,4 +104,4 @@ def initialize_response_body() -> dict:
 
 
 if __name__ == '__main__':
-    func.run()
+    FUNC.run()
