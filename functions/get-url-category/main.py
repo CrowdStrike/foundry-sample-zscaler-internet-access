@@ -20,7 +20,9 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
     response_body = initialize_response_body()
 
     logger.info(
-        f"received request. definition_id: {definition_id}, operation_id: {operation_id}, url_category_name: {url_category_name}")
+        f"received request. definition_id: {definition_id}, "
+        f"operation_id: {operation_id}, "
+        f"url_category_name: {url_category_name}")
 
     if not all([definition_id, operation_id, url_category_name]):
         response_body['errors']['description'] = (
