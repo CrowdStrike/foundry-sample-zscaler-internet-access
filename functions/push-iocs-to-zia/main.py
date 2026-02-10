@@ -17,11 +17,13 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
     definition_id = request.body.get('apiDefinitionId', "")
     operation_id = request.body.get('apiOperationId', "")
 
-    url_category_name = request.body.get("configuredName", "")
-    category_id = request.body.get("categoryID", "")
-    action = request.body.get("action", "ADD_TO_LIST")
-    custom_category = request.body.get("customCategory", "TRUE")
-    super_category = request.body.get("superCategory", "USER_DEFINED")
+    category_config = {
+        "name": request.body.get("configuredName", ""),
+        "id": request.body.get("categoryID", ""),
+        "action": request.body.get("action", "ADD_TO_LIST"),
+        "custom_category": request.body.get("customCategory", "TRUE"),
+        "super_category": request.body.get("superCategory", "USER_DEFINED")
+    }
     urls = request.body.get("urls", [])
 
     response_body = initialize_response_body()
@@ -29,14 +31,11 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
     logger.info(
         f"received request. definition_id: {definition_id}, "
         f"operation_id: {operation_id}, "
-        f"url_category_name: {url_category_name},"
-        f"custom_category: {custom_category}, "
-        f"super_category: {super_category},"
-        f"category_id: {category_id}, "
-        f"action: {action}, "
+        f"category_config: {category_config}, "
         f"urls: {urls}")
 
-    if not all([definition_id, operation_id, url_category_name, category_id, urls]):
+    if not all([definition_id, operation_id, category_config["name"],
+                category_config["id"], urls]):
         response_body['errors']['description'] = (
             "Missing required credentials: "
             "definition_id, operation_id, url_category_name, category_id, urls"
@@ -45,13 +44,11 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 
     logger.info("Zscaler pushing IOCs...")
 
-    response_body['urlCategoryConfiguredName'] = url_category_name
-    response_body['urlCategoryId'] = category_id
+    response_body['urlCategoryConfiguredName'] = category_config["name"]
+    response_body['urlCategoryId'] = category_config["id"]
     response_body['urls'] = urls
-
     zscaler_response = push_iocs_to_zia_with_retry(
-        logger, definition_id, operation_id, url_category_name,
-        category_id, action, custom_category, super_category, urls)
+        logger, definition_id, operation_id, category_config, urls)
     if zscaler_response["status_code"] != 200:
         logger.error("Zscaler API return non 200 status code")
         body = zscaler_response.get("body", {})
@@ -70,8 +67,7 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 
 
 def push_iocs_to_zia_with_retry(
-        logger, definition_id, operation_id, url_category_name,
-        category_id, action, custom_category, super_category, urls):
+        logger, definition_id, operation_id, category_config, urls):
     """Perform Push IOCs to ZIA with retry logic."""
 
     max_retries = 3
@@ -88,8 +84,7 @@ def push_iocs_to_zia_with_retry(
 
     for attempt in range(max_retries + 1):
         response = push_iocs_to_zia(
-            logger, definition_id, operation_id, url_category_name,
-            category_id, action, custom_category, super_category, urls)
+            logger, definition_id, operation_id, category_config, urls)
 
         # Check if we should retry
         if (attempt < max_retries and
@@ -124,17 +119,12 @@ def push_iocs_to_zia_with_retry(
 
 
 def push_iocs_to_zia(
-        logger, definition_id, operation_id, url_category_name,
-        category_id, action, custom_category, super_category, urls):
+        logger, definition_id, operation_id, category_config, urls):
     """Push IOCs to ZIA."""
     logger.info(
         f"Pushing IOCs to ZIA. definition_id: {definition_id}, "
         f"operation_id: {operation_id}, "
-        f"url_category_name: {url_category_name},"
-        f"custom_category: {custom_category}, "
-        f"super_category: {super_category}, "
-        f"category_id: {category_id}, "
-        f"action: {action}, "
+        f"category_config: {category_config}, "
         f"urls: {urls}"
     )
 
@@ -148,17 +138,17 @@ def push_iocs_to_zia(
                     "operation_id": operation_id,
                     "request": {
                         "json": {
-                            "customCategory": custom_category,
-                            "superCategory": super_category,
-                            "configuredName": url_category_name,
+                            "customCategory": category_config["custom_category"],
+                            "superCategory": category_config["super_category"],
+                            "configuredName": category_config["name"],
                             "urls": urls
                         },
                         "params": {
                             "query": {
-                                "action": action
+                                "action": category_config["action"]
                             },
                             "path": {
-                                "ID": category_id
+                                "ID": category_config["id"]
                             }
                         }
                     },
