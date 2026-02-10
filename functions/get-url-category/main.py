@@ -72,7 +72,8 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 def get_url_categories(logger, definition_id, operation_id):
     """Perform URL lookup using Zscaler API."""
     logger.info(
-        f"Getting URL categories using Zscaler API. definition_id: {definition_id}, operation_id: {operation_id}")
+        f"Getting URL categories using Zscaler API. "
+        f"definition_id: {definition_id}, operation_id: {operation_id}")
 
     api = APIIntegrations(debug=False)
     response = api.execute_command_proxy(

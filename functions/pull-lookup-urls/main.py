@@ -156,7 +156,8 @@ def url_lookup_with_retry(
                         wait_time = backoff_schedule[attempt]
 
                     logger.info(
-                        f"Received status code {resource_status_code}. Retrying in {wait_time} seconds. "
+                        f"Received status code {resource_status_code}. "
+                        f"Retrying in {wait_time} seconds. "
                         f"Attempt {attempt + 1}/{max_retries + 1}"
                     )
                     time.sleep(wait_time)
