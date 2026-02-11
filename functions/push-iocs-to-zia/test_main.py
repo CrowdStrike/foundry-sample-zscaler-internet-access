@@ -1,3 +1,4 @@
+"""Unit tests for push-iocs-to-zia handler functionality."""
 import unittest
 import http
 import time
@@ -7,6 +8,7 @@ from falconpy import APIIntegrations
 
 
 def initialize_response_body():
+    """Initialize response body structure."""
     return {
         "urlCategoryConfiguredName": "",
         "urlCategoryId": "",
@@ -19,6 +21,7 @@ def initialize_response_body():
 
 
 def get_retry_after_from_headers(logger, headers):
+    """Extract Retry-After value from response headers."""
     for header_name, header_value in headers.items():
         if header_name.lower() == 'retry-after':
             try:
@@ -35,6 +38,7 @@ def get_retry_after_from_headers(logger, headers):
 
 
 def push_iocs_to_zia(logger, definition_id, operation_id, category_config, urls):
+    """Push IOCs to ZIA."""
     logger.info(
         f"Pushing IOCs to ZIA. definition_id: {definition_id}, "
         f"operation_id: {operation_id}, "
@@ -76,6 +80,7 @@ def push_iocs_to_zia(logger, definition_id, operation_id, category_config, urls)
 
 
 def push_iocs_to_zia_with_retry(logger, definition_id, operation_id, category_config, urls):
+    """Push IOCs to ZIA with retry logic."""
     max_retries = 3
     backoff_schedule = [2, 3, 5]
 
@@ -122,12 +127,15 @@ def push_iocs_to_zia_with_retry(logger, definition_id, operation_id, category_co
 
 
 class TestPushIocsToZia(unittest.TestCase):
+    """Test cases for push IOCs to ZIA functionality."""
 
     def setUp(self):
+        """Set up test fixtures."""
         self.logger = Mock()
         self.config = {}
 
     def pull_urls_logic(self, request, _config, logger):
+        """Push indicators of compromise to Zscaler Internet Access."""
         definition_id = request.body.get('apiDefinitionId', "")
         operation_id = request.body.get('apiOperationId', "")
 
@@ -180,6 +188,7 @@ class TestPushIocsToZia(unittest.TestCase):
         )
 
     def test_initialize_response_body(self):
+        """Test response body initialization."""
         response_body = initialize_response_body()
 
         self.assertEqual(response_body["urlCategoryConfiguredName"], "")
@@ -189,6 +198,7 @@ class TestPushIocsToZia(unittest.TestCase):
         self.assertEqual(response_body["errors"]["errs"], [])
 
     def test_pull_urls_missing_credentials(self):
+        """Test handling of missing credentials."""
         request = Mock()
         request.body = {
             "apiDefinitionId": "",
@@ -204,6 +214,7 @@ class TestPushIocsToZia(unittest.TestCase):
         self.assertIn("Missing required credentials", response.body["errors"]["description"])
 
     def test_pull_urls_missing_urls(self):
+        """Test handling of missing URLs."""
         request = Mock()
         request.body = {
             "apiDefinitionId": "def123",
@@ -219,6 +230,7 @@ class TestPushIocsToZia(unittest.TestCase):
 
     @patch('test_main.push_iocs_to_zia_with_retry')
     def test_pull_urls_success(self, mock_push_iocs):
+        """Test successful IOC push."""
         mock_push_iocs.return_value = {
             "status_code": 200,
             "body": {}
@@ -242,6 +254,7 @@ class TestPushIocsToZia(unittest.TestCase):
 
     @patch('test_main.push_iocs_to_zia_with_retry')
     def test_pull_urls_api_error(self, mock_push_iocs):
+        """Test handling of API errors."""
         mock_push_iocs.return_value = {
             "status_code": 500,
             "body": {"errors": ["Internal error"]}
@@ -263,6 +276,7 @@ class TestPushIocsToZia(unittest.TestCase):
 
     @patch.object(APIIntegrations, 'execute_command_proxy')
     def test_push_iocs_to_zia(self, mock_execute):
+        """Test push_iocs_to_zia function."""
         mock_execute.return_value = {
             "status_code": 200,
             "body": {}
@@ -285,6 +299,7 @@ class TestPushIocsToZia(unittest.TestCase):
 
     @patch('test_main.push_iocs_to_zia')
     def test_push_iocs_to_zia_with_retry_success_first_attempt(self, mock_push_iocs):
+        """Test successful retry on first attempt."""
         mock_push_iocs.return_value = {
             "status_code": 200,
             "body": {}
@@ -308,6 +323,7 @@ class TestPushIocsToZia(unittest.TestCase):
     @patch('test_main.push_iocs_to_zia')
     @patch('test_main.time.sleep')
     def test_push_iocs_to_zia_with_retry_429_error(self, mock_sleep, mock_push_iocs):
+        """Test retry logic for 429 rate limit errors."""
         mock_push_iocs.side_effect = [
             {
                 "status_code": 207,
@@ -343,6 +359,7 @@ class TestPushIocsToZia(unittest.TestCase):
     @patch('test_main.push_iocs_to_zia')
     @patch('test_main.time.sleep')
     def test_push_iocs_to_zia_with_retry_max_retries(self, _mock_sleep, mock_push_iocs):
+        """Test retry logic exceeding maximum retries."""
         mock_push_iocs.return_value = {
             "status_code": 207,
             "body": {
@@ -369,6 +386,7 @@ class TestPushIocsToZia(unittest.TestCase):
         self.assertEqual(mock_push_iocs.call_count, 4)
 
     def test_get_retry_after_from_headers_with_valid_header(self):
+        """Test parsing valid Retry-After header."""
         headers = {"Retry-After": ["60"]}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -376,6 +394,7 @@ class TestPushIocsToZia(unittest.TestCase):
         self.assertEqual(result, 60)
 
     def test_get_retry_after_from_headers_case_insensitive(self):
+        """Test case-insensitive Retry-After header parsing."""
         headers = {"retry-after": ["45"]}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -383,6 +402,7 @@ class TestPushIocsToZia(unittest.TestCase):
         self.assertEqual(result, 45)
 
     def test_get_retry_after_from_headers_missing(self):
+        """Test handling of missing Retry-After header."""
         headers = {}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -390,6 +410,7 @@ class TestPushIocsToZia(unittest.TestCase):
         self.assertEqual(result, 300)
 
     def test_get_retry_after_from_headers_invalid_value(self):
+        """Test handling of invalid Retry-After header value."""
         headers = {"Retry-After": ["not_a_number"]}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -398,6 +419,7 @@ class TestPushIocsToZia(unittest.TestCase):
 
     @patch('test_main.push_iocs_to_zia_with_retry')
     def test_pull_urls_with_default_category_action(self, mock_push):
+        """Test with default category action."""
         mock_push.return_value = {"status_code": 200, "body": {}}
 
         request = Mock()

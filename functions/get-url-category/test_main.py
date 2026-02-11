@@ -1,3 +1,4 @@
+"""Unit tests for get-url-category handler functionality."""
 import unittest
 from unittest.mock import Mock, patch
 from crowdstrike.foundry.function import Response
@@ -5,6 +6,7 @@ from falconpy import APIIntegrations
 
 
 def initialize_response_body():
+    """Initialize response body structure."""
     return {
         "urlCategoryConfiguredName": "",
         "urlCategoryId": "",
@@ -16,6 +18,7 @@ def initialize_response_body():
 
 
 def get_url_categories(logger, definition_id, operation_id):
+    """Get URL categories using Zscaler API."""
     logger.info(
         f"Getting URL categories using Zscaler API. "
         f"definition_id: {definition_id}, operation_id: {operation_id}")
@@ -38,12 +41,15 @@ def get_url_categories(logger, definition_id, operation_id):
 
 
 class TestGetUrlCategory(unittest.TestCase):
+    """Test cases for URL category retrieval logic."""
 
     def setUp(self):
+        """Set up test fixtures."""
         self.logger = Mock()
         self.config = {}
 
     def pull_urls_logic(self, request, _config, logger):
+        """Retrieve URL category from Zscaler by configured name."""
         definition_id = request.body.get('apiDefinitionId', "")
         operation_id = request.body.get('apiOperationId', "")
 
@@ -101,6 +107,7 @@ class TestGetUrlCategory(unittest.TestCase):
         )
 
     def test_initialize_response_body(self):
+        """Test response body initialization."""
         response_body = initialize_response_body()
 
         self.assertEqual(response_body["urlCategoryConfiguredName"], "")
@@ -109,6 +116,7 @@ class TestGetUrlCategory(unittest.TestCase):
         self.assertEqual(response_body["errors"]["errs"], [])
 
     def test_pull_urls_missing_credentials(self):
+        """Test handling of missing credentials."""
         request = Mock()
         request.body = {
             "apiDefinitionId": "",
@@ -122,6 +130,7 @@ class TestGetUrlCategory(unittest.TestCase):
         self.assertIn("Missing required credentials", response.body["errors"]["description"])
 
     def test_pull_urls_missing_definition_id(self):
+        """Test handling of missing definition ID."""
         request = Mock()
         request.body = {
             "apiDefinitionId": "",
@@ -135,6 +144,7 @@ class TestGetUrlCategory(unittest.TestCase):
 
     @patch('test_main.get_url_categories')
     def test_pull_urls_api_error(self, mock_get_url_categories):
+        """Test handling of API errors."""
         mock_get_url_categories.return_value = {
             "status_code": 500,
             "body": {"errors": ["Internal Server Error"]}
@@ -154,6 +164,7 @@ class TestGetUrlCategory(unittest.TestCase):
 
     @patch('test_main.get_url_categories')
     def test_pull_urls_category_not_found(self, mock_get_url_categories):
+        """Test handling when URL category is not found."""
         mock_get_url_categories.return_value = {
             "status_code": 200,
             "body": {
@@ -181,6 +192,7 @@ class TestGetUrlCategory(unittest.TestCase):
 
     @patch('test_main.get_url_categories')
     def test_pull_urls_category_found(self, mock_get_url_categories):
+        """Test successful URL category retrieval."""
         mock_get_url_categories.return_value = {
             "status_code": 200,
             "body": {
@@ -209,6 +221,7 @@ class TestGetUrlCategory(unittest.TestCase):
 
     @patch('test_main.get_url_categories')
     def test_pull_urls_non_custom_category_skipped(self, mock_get_url_categories):
+        """Test that non-custom categories are skipped."""
         mock_get_url_categories.return_value = {
             "status_code": 200,
             "body": {
@@ -235,6 +248,7 @@ class TestGetUrlCategory(unittest.TestCase):
 
     @patch.object(APIIntegrations, 'execute_command_proxy')
     def test_get_url_categories(self, mock_execute):
+        """Test get_url_categories function."""
         mock_execute.return_value = {
             "status_code": 200,
             "body": {"resources": []}

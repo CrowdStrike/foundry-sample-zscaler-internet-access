@@ -1,3 +1,4 @@
+"""Unit tests for pull-lookup-urls handler functionality."""
 import unittest
 import http
 import re
@@ -8,6 +9,7 @@ from falconpy import APIIntegrations, Intel
 
 
 def initialize_response_body():
+    """Initialize response body structure."""
     return {
         "lookup_results": [],
         "urls": [],
@@ -19,6 +21,7 @@ def initialize_response_body():
 
 
 def filter_urls(prepared, indicator):
+    """Filter and transform URLs for Zscaler API ingestion."""
     file_regex = r"^url_file:"
     prefix_regex = r'^.*?_'
     http_regex = r"(?<=//).*"
@@ -47,6 +50,7 @@ def filter_urls(prepared, indicator):
 
 
 def get_retry_after_from_headers(logger, headers):
+    """Extract Retry-After value from response headers."""
     for header_name, header_value in headers.items():
         if header_name.lower() == 'retry-after':
             try:
@@ -62,6 +66,7 @@ def get_retry_after_from_headers(logger, headers):
 
 
 def url_lookup(logger, definition_id, operation_id, urls):
+    """Perform URL lookup using Zscaler API."""
     logger.info(
         f"Performing URL lookup using Zscaler API. "
         f"definition_id: {definition_id}, "
@@ -88,6 +93,7 @@ def url_lookup(logger, definition_id, operation_id, urls):
 
 
 def url_lookup_with_retry(logger, definition_id, operation_id, urls):
+    """Perform URL lookup with retry logic for failures."""
     max_retries = 3
     backoff_schedule = [2, 3, 5]
 
@@ -133,12 +139,15 @@ def url_lookup_with_retry(logger, definition_id, operation_id, urls):
 
 
 class TestPullLookupUrls(unittest.TestCase):
+    """Test cases for URL lookup functionality."""
 
     def setUp(self):
+        """Set up test fixtures."""
         self.logger = Mock()
         self.config = {}
 
     def pull_urls_logic(self, request, _config, logger):
+        """Pull URLs from CrowdStrike Intel and perform Zscaler lookup."""
         response_body = initialize_response_body()
         try:
             definition_id = request.body.get('apiDefinitionId', "")
@@ -214,6 +223,7 @@ class TestPullLookupUrls(unittest.TestCase):
             )
 
     def test_initialize_response_body(self):
+        """Test response body initialization."""
         response_body = initialize_response_body()
 
         self.assertEqual(response_body["lookup_results"], [])
@@ -222,6 +232,7 @@ class TestPullLookupUrls(unittest.TestCase):
         self.assertEqual(response_body["errors"]["errs"], [])
 
     def test_pull_urls_missing_credentials(self):
+        """Test handling of missing credentials."""
         request = Mock()
         request.body = {
             "apiDefinitionId": "",
@@ -236,6 +247,7 @@ class TestPullLookupUrls(unittest.TestCase):
     @patch('test_main.Intel')
     @patch('test_main.url_lookup_with_retry')
     def test_pull_urls_success(self, mock_url_lookup, mock_intel):
+        """Test successful URL lookup."""
         mock_intel_instance = MagicMock()
         mock_intel_instance.query_indicator_ids.return_value = {
             "body": {"resources": ["url_malware:http://test-example.com"]}
@@ -261,6 +273,7 @@ class TestPullLookupUrls(unittest.TestCase):
 
     @patch('test_main.Intel')
     def test_pull_urls_no_urls_found(self, mock_intel):
+        """Test handling when no URLs are found."""
         mock_intel_instance = MagicMock()
         mock_intel_instance.query_indicator_ids.return_value = {
             "body": {"resources": ["url_file:example.txt"]}
@@ -282,6 +295,7 @@ class TestPullLookupUrls(unittest.TestCase):
     @patch('test_main.Intel')
     @patch('test_main.url_lookup_with_retry')
     def test_pull_urls_zscaler_error(self, mock_url_lookup, mock_intel):
+        """Test handling of Zscaler API errors."""
         mock_intel_instance = MagicMock()
         mock_intel_instance.query_indicator_ids.return_value = {
             "body": {"resources": ["url_malware:http://test-example.com"]}
@@ -306,42 +320,49 @@ class TestPullLookupUrls(unittest.TestCase):
         self.assertIn("Failed to lookup URLs", response.body["errors"]["description"])
 
     def test_filter_urls_valid_domain(self):
+        """Test filtering of valid domain."""
         prepared = []
         result = filter_urls(prepared, "url_malware:test-example.com")
 
         self.assertEqual(result, [])
 
     def test_filter_urls_with_http_prefix(self):
+        """Test filtering of URL with HTTP prefix."""
         prepared = []
         result = filter_urls(prepared, "url_malware:http://test-example.com")
 
         self.assertIn("test-example.com", result)
 
     def test_filter_urls_with_port(self):
+        """Test filtering of URL with port."""
         prepared = []
         result = filter_urls(prepared, "url_malware:test-example.com:8080")
 
         self.assertEqual(result, [])
 
     def test_filter_urls_file_url(self):
+        """Test filtering of file URLs."""
         prepared = []
         result = filter_urls(prepared, "url_file:example.txt")
 
         self.assertEqual(result, [])
 
     def test_filter_urls_rfc1918_address(self):
+        """Test filtering of RFC1918 private addresses."""
         prepared = []
         result = filter_urls(prepared, "url_domain:10.0.0.1")
 
         self.assertEqual(result, [])
 
     def test_filter_urls_invalid_format(self):
+        """Test filtering of invalid URL format."""
         prepared = []
         result = filter_urls(prepared, "url_domain:invalid_url_format")
 
         self.assertEqual(result, [])
 
     def test_get_retry_after_from_headers_with_valid_header(self):
+        """Test parsing valid Retry-After header."""
         headers = {"Retry-After": ["60"]}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -349,6 +370,7 @@ class TestPullLookupUrls(unittest.TestCase):
         self.assertEqual(result, 60)
 
     def test_get_retry_after_from_headers_case_insensitive(self):
+        """Test case-insensitive Retry-After header parsing."""
         headers = {"retry-after": ["30"]}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -356,6 +378,7 @@ class TestPullLookupUrls(unittest.TestCase):
         self.assertEqual(result, 30)
 
     def test_get_retry_after_from_headers_missing(self):
+        """Test handling of missing Retry-After header."""
         headers = {}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -363,6 +386,7 @@ class TestPullLookupUrls(unittest.TestCase):
         self.assertEqual(result, 300)
 
     def test_get_retry_after_from_headers_invalid_value(self):
+        """Test handling of invalid Retry-After header value."""
         headers = {"Retry-After": ["invalid"]}
 
         result = get_retry_after_from_headers(self.logger, headers)
@@ -371,6 +395,7 @@ class TestPullLookupUrls(unittest.TestCase):
 
     @patch.object(APIIntegrations, 'execute_command_proxy')
     def test_url_lookup(self, mock_execute):
+        """Test URL lookup function."""
         mock_execute.return_value = {
             "status_code": 200,
             "body": {"resources": []}
@@ -383,6 +408,7 @@ class TestPullLookupUrls(unittest.TestCase):
 
     @patch('test_main.url_lookup')
     def test_url_lookup_with_retry_success_first_attempt(self, mock_url_lookup):
+        """Test successful retry on first attempt."""
         mock_url_lookup.return_value = {
             "status_code": 200,
             "body": {"resources": []}
@@ -396,6 +422,7 @@ class TestPullLookupUrls(unittest.TestCase):
     @patch('test_main.url_lookup')
     @patch('test_main.time.sleep')
     def test_url_lookup_with_retry_429_error(self, mock_sleep, mock_url_lookup):
+        """Test retry logic for 429 rate limit errors."""
         mock_url_lookup.side_effect = [
             {
                 "status_code": 207,
@@ -421,6 +448,7 @@ class TestPullLookupUrls(unittest.TestCase):
     @patch('test_main.url_lookup')
     @patch('test_main.time.sleep')
     def test_url_lookup_with_retry_max_retries(self, _mock_sleep, mock_url_lookup):
+        """Test retry logic exceeding maximum retries."""
         mock_url_lookup.return_value = {
             "status_code": 207,
             "body": {
