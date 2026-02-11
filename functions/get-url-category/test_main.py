@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from crowdstrike.foundry.function import Response
 from falconpy import APIIntegrations
 
@@ -102,7 +102,7 @@ class TestGetUrlCategory(unittest.TestCase):
 
     def test_initialize_response_body(self):
         response_body = initialize_response_body()
-        
+
         self.assertEqual(response_body["urlCategoryConfiguredName"], "")
         self.assertEqual(response_body["urlCategoryId"], "")
         self.assertEqual(response_body["errors"]["description"], "")

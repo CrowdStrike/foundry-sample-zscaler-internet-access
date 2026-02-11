@@ -215,7 +215,7 @@ class TestPullLookupUrls(unittest.TestCase):
 
     def test_initialize_response_body(self):
         response_body = initialize_response_body()
-        
+
         self.assertEqual(response_body["lookup_results"], [])
         self.assertEqual(response_body["urls"], [])
         self.assertEqual(response_body["errors"]["description"], "")
@@ -308,65 +308,65 @@ class TestPullLookupUrls(unittest.TestCase):
     def test_filter_urls_valid_domain(self):
         prepared = []
         result = filter_urls(prepared, "url_malware:test-example.com")
-        
+
         self.assertEqual(result, [])
 
     def test_filter_urls_with_http_prefix(self):
         prepared = []
         result = filter_urls(prepared, "url_malware:http://test-example.com")
-        
+
         self.assertIn("test-example.com", result)
 
     def test_filter_urls_with_port(self):
         prepared = []
         result = filter_urls(prepared, "url_malware:test-example.com:8080")
-        
+
         self.assertEqual(result, [])
 
     def test_filter_urls_file_url(self):
         prepared = []
         result = filter_urls(prepared, "url_file:example.txt")
-        
+
         self.assertEqual(result, [])
 
     def test_filter_urls_rfc1918_address(self):
         prepared = []
         result = filter_urls(prepared, "url_domain:10.0.0.1")
-        
+
         self.assertEqual(result, [])
 
     def test_filter_urls_invalid_format(self):
         prepared = []
         result = filter_urls(prepared, "url_domain:invalid_url_format")
-        
+
         self.assertEqual(result, [])
 
     def test_get_retry_after_from_headers_with_valid_header(self):
         headers = {"Retry-After": ["60"]}
-        
+
         result = get_retry_after_from_headers(self.logger, headers)
-        
+
         self.assertEqual(result, 60)
 
     def test_get_retry_after_from_headers_case_insensitive(self):
         headers = {"retry-after": ["30"]}
-        
+
         result = get_retry_after_from_headers(self.logger, headers)
-        
+
         self.assertEqual(result, 30)
 
     def test_get_retry_after_from_headers_missing(self):
         headers = {}
-        
+
         result = get_retry_after_from_headers(self.logger, headers)
-        
+
         self.assertEqual(result, 300)
 
     def test_get_retry_after_from_headers_invalid_value(self):
         headers = {"Retry-After": ["invalid"]}
-        
+
         result = get_retry_after_from_headers(self.logger, headers)
-        
+
         self.assertEqual(result, 300)
 
     @patch.object(APIIntegrations, 'execute_command_proxy')
@@ -420,7 +420,7 @@ class TestPullLookupUrls(unittest.TestCase):
 
     @patch('test_main.url_lookup')
     @patch('test_main.time.sleep')
-    def test_url_lookup_with_retry_max_retries(self, mock_sleep, mock_url_lookup):
+    def test_url_lookup_with_retry_max_retries(self, _mock_sleep, mock_url_lookup):
         mock_url_lookup.return_value = {
             "status_code": 207,
             "body": {
