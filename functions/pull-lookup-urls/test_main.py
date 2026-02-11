@@ -138,7 +138,7 @@ def url_lookup_with_retry(logger, definition_id, operation_id, urls):
     return None
 
 
-class TestPullLookupUrls(unittest.TestCase):
+class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-methods
     """Test cases for URL lookup functionality."""
 
     def setUp(self):
