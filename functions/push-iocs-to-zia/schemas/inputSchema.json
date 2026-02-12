@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "properties": {
+    "apiDefinitionId": {
+      "type": "string",
+      "description": "API integration definition ID"
+    },
+    "apiOperationId": {
+      "type": "string",
+      "description": "API integration operation ID"
+    },
+    "action": {
+      "enum": [
+        "ADD_TO_LIST"
+      ],
+      "type": "string",
+      "title": "Action"
+    },
+    "configuredName": {
+      "type": "string",
+      "title": "ConfiguredName"
+    },
+    "categoryID": {
+      "type": "string",
+      "title": "CategoryID"
+    },
+    "customCategory": {
+      "type": "string",
+      "title": "CustomCategory",
+      "default": "TRUE"
+    },
+    "superCategory": {
+      "type": "string",
+      "title": "SuperCategory",
+      "default": "USER_DEFINED"
+    },
+    "urls": {
+      "items": {
+        "type": "string",
+        "title": "Urls"
+      },
+      "type": "array",
+      "title": "Urls"
+    }
+  },
+  "type": "object",
+  "description": "This generated schema may need tweaking. In particular format fields are attempts at matching workflow field types but may not be correct."
+}
