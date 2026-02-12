@@ -20,9 +20,9 @@ This app illustrates the following functionality amongst other components:
 * **Functions.** Five custom Python functions handle:
     * Controlling workflow iteration logic
     * Retrieving ZIA URL category details
-    * Pulling high-confidence malicious URLs from Falcon Intelligence
-    * Looking up URLs in Zscaler's categorization database
+    * Pulling high-confidence malicious URLs from Falcon Intelligence and looking up URLs in Zscaler's categorization database
     * Extracting uncategorized/unknown URLs for blocking
+    * Push IOCs to Zscaler Internet Access (ZIA)
 * **Workflow templates.** Orchestrates the automated process of pulling high-confidence malicious URLs from Falcon Intelligence, looking them up in Zscaler to check categorization, filtering uncategorized/unknown URLs, and pushing them to a custom ZIA URL category for inline blocking.
 
 ## Install App Configuration
