@@ -4,6 +4,7 @@ import http
 import re
 import time
 from unittest.mock import Mock, patch, MagicMock
+from urllib.parse import unquote
 from crowdstrike.foundry.function import Response
 from falconpy import APIIntegrations, Intel
 
@@ -13,6 +14,8 @@ def initialize_response_body():
     return {
         "lookup_results": [],
         "urls": [],
+        "marker": "",
+        "totalIntelIndicatorRecords": 0,
         "errors": {
             "description": "",
             "errs": []
@@ -138,6 +141,199 @@ def url_lookup_with_retry(logger, definition_id, operation_id, urls):
     return None
 
 
+def get_marker_from_next_page_header(logger, headers):
+    """
+    Extract _marker value from Next-Page response header.
+
+    Args:
+        logger: Logger instance for logging
+        headers: Response headers dictionary
+
+    Returns:
+        Extracted marker value as string, or empty string if not found
+    """
+    logger.info(f"Getting Next-Page response header: {headers}")
+    next_page_header = headers.get("Next-Page")
+
+    if next_page_header:
+        # URL decode the header first (marker is URL-encoded)
+        decoded_header = unquote(next_page_header)
+        logger.info(f"Decoded Next-Page header: {decoded_header}")
+
+        # Extract _marker value from Next-Page header (format: _marker:<'value'>)
+        match = re.search(r"_marker:<'([^']+)'", decoded_header)
+        if match:
+            marker = match.group(1)
+            logger.info(f"Extracted marker from Next-Page header: {marker}")
+            return marker
+    else:
+        logger.info("Next-Page response header not found. Means its a last page")
+
+    return ""
+
+
+class TestMarkerExtraction(unittest.TestCase):
+    """Test marker extraction from Next-Page header."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.mock_logger = Mock()
+
+    def test_marker_extraction_from_real_crowdstrike_header(self):
+        """Test extracting marker from real CrowdStrike Next-Page header."""
+        # Real Next-Page header from CrowdStrike API response
+        headers = {
+            'Server': 'nginx',
+            'Date': 'Sat, 21 Feb 2026 22:09:20 GMT',
+            'Content-Type': 'application/json',
+            'Transfer-Encoding': 'chunked',
+            'Connection': 'keep-alive',
+            'Content-Encoding': 'gzip',
+            'Next-Page': (
+                '/intel/queries/indicators/v1?filter=type%3A%27url%27%2B'
+                'malicious_confidence%3A%27high%27%2B_marker%3A%3C%27'
+                '17717051597b5ae3407a1c52bff57657b7c416c5c6%27&'
+                'include_deleted=false&limit=100'
+            ),
+            'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+            'X-Cs-Region': 'us-1',
+            'X-Ratelimit-Limit': '6000',
+            'X-Ratelimit-Remaining': '5998'
+        }
+
+        marker = get_marker_from_next_page_header(self.mock_logger, headers)
+
+        self.assertEqual(
+            marker,
+            "17717051597b5ae3407a1c52bff57657b7c416c5c6",
+            "Marker should match expected value from real CrowdStrike response"
+        )
+
+    def test_marker_extraction_with_url_encoding(self):
+        """Test that URL-encoded Next-Page header is properly decoded."""
+        headers = {
+            'Next-Page': (
+                '/intel/queries/indicators/v1?filter=type%3A%27url%27%2B'
+                'malicious_confidence%3A%27high%27%2B_marker%3A%3C%27'
+                '1771676046b88302d0d18e99d8954a9eea9586c71d%27&'
+                'include_deleted=false&limit=100'
+            )
+        }
+
+        marker = get_marker_from_next_page_header(self.mock_logger, headers)
+
+        self.assertEqual(
+            marker,
+            "1771676046b88302d0d18e99d8954a9eea9586c71d",
+            "Should extract marker from URL-encoded header"
+        )
+
+    def test_marker_extraction_without_next_page_header(self):
+        """Test when Next-Page header is not present (last page)."""
+        headers = {
+            'Server': 'nginx',
+            'Content-Type': 'application/json'
+        }
+
+        marker = get_marker_from_next_page_header(self.mock_logger, headers)
+
+        self.assertEqual(
+            marker,
+            "",
+            "Should return empty string when Next-Page header is missing"
+        )
+
+    def test_marker_extraction_without_marker_in_header(self):
+        """Test when Next-Page header exists but has no marker parameter."""
+        headers = {
+            'Next-Page': '/intel/queries/indicators/v1?filter=type%3A%27url%27'
+        }
+
+        marker = get_marker_from_next_page_header(self.mock_logger, headers)
+
+        self.assertEqual(
+            marker,
+            "",
+            "Should return empty string when marker is not in Next-Page header"
+        )
+
+    def test_marker_extraction_with_short_marker(self):
+        """Test extraction with a short marker value."""
+        headers = {
+            'Next-Page': '/intel/queries/indicators/v1?filter=_marker%3A%3C%27abc123%27'
+        }
+
+        marker = get_marker_from_next_page_header(self.mock_logger, headers)
+
+        self.assertEqual(marker, "abc123", "Should extract short marker value")
+
+    def test_marker_extraction_with_different_marker_values(self):
+        """Test extraction with various marker formats."""
+        test_cases = [
+            (
+                '/intel/queries/indicators/v1?filter=_marker%3A%3C%27abc123def456%27',
+                'abc123def456'
+            ),
+            (
+                '/intel/queries/indicators/v1?filter=_marker%3A%3C%270123456789abcdef%27',
+                '0123456789abcdef'
+            ),
+            (
+                '/intel/queries/indicators/v1?filter=type%3A%27url%27%2B_marker%3A%3C%27xyz789%27',
+                'xyz789'
+            ),
+        ]
+
+        for next_page_url, expected_marker in test_cases:
+            with self.subTest(expected_marker=expected_marker):
+                headers = {'Next-Page': next_page_url}
+                marker = get_marker_from_next_page_header(
+                    self.mock_logger, headers
+                )
+                self.assertEqual(marker, expected_marker)
+
+    def test_marker_extraction_logs_properly(self):
+        """Test that the method logs expected messages."""
+        headers = {
+            'Next-Page': (
+                '/intel/queries/indicators/v1?filter=_marker%3A%3C%27test123%27'
+            )
+        }
+
+        marker = get_marker_from_next_page_header(self.mock_logger, headers)
+
+        # Verify logging calls
+        self.assertTrue(self.mock_logger.info.called)
+        self.assertEqual(marker, "test123")
+
+
+class TestFilterQueryWithMarker(unittest.TestCase):
+    """Test that marker is properly used in filter queries."""
+
+    def test_filter_query_without_marker(self):
+        """Test filter query construction without marker."""
+        marker = ""
+        filter_query = "type:'url'+malicious_confidence:'high'"
+        if marker:
+            filter_query = f"{filter_query}+_marker:<'{marker}'>"
+
+        expected = "type:'url'+malicious_confidence:'high'"
+        self.assertEqual(filter_query, expected)
+
+    def test_filter_query_with_marker(self):
+        """Test filter query construction with marker."""
+        marker = "17717051597b5ae3407a1c52bff57657b7c416c5c6"
+        filter_query = "type:'url'+malicious_confidence:'high'"
+        if marker:
+            filter_query = f"{filter_query}+_marker:<'{marker}'>"
+
+        expected = (
+            "type:'url'+malicious_confidence:'high'+"
+            "_marker:<'17717051597b5ae3407a1c52bff57657b7c416c5c6'>"
+        )
+        self.assertEqual(filter_query, expected)
+
+
 class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-methods
     """Test cases for URL lookup functionality."""
 
@@ -152,11 +348,12 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         try:
             definition_id = request.body.get('apiDefinitionId', "")
             operation_id = request.body.get('apiOperationId', "")
+            marker = request.body.get('marker', "")
 
             offset = request.body.get("offset", 0)
 
             logger.info(f"received request. definition_id: {definition_id}, "
-                        f"operation_id: {operation_id}, offset: {offset}")
+                        f"operation_id: {operation_id}, marker: {marker}, offset: {offset}")
 
             if not all([definition_id, operation_id]):
                 return Response(
@@ -167,15 +364,30 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
                 )
 
             intel_client = Intel()
-            offset = int(offset)
+            # offset = int(offset)
+
+            filter_query = "type:'url'+malicious_confidence:'high'"
+            # Build filter based on marker presence
+            if marker:
+                filter_query = f"{filter_query}+_marker:<'{marker}'>"
+            logger.info(f"Using filter query: {filter_query}")
+
             response = intel_client.query_indicator_ids(
                 limit=100,
-                offset=offset,
-                filter="type:'url'+malicious_confidence:'high'",
+                filter=filter_query,
                 include_deleted=False,
             )
 
             logger.info(f"CrowdStrike intel response: {response}")
+
+            # Extract _marker value from Next-Page response header
+            headers = response.get("headers", {})
+            response_body['marker'] = get_marker_from_next_page_header(logger, headers)
+
+            # Extract total records from response body
+            total_intel_indicator_records = response["body"]["meta"]["pagination"]["total"]
+            response_body['totalIntelIndicatorRecords'] = total_intel_indicator_records
+
             batch = response["body"]["resources"]
 
             filtered_urls = []
@@ -231,6 +443,20 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertEqual(response_body["errors"]["description"], "")
         self.assertEqual(response_body["errors"]["errs"], [])
 
+    def test_initialize_response_body_includes_marker(self):
+        """Test that response body includes marker field."""
+        response_body = initialize_response_body()
+
+        self.assertIn("marker", response_body)
+        self.assertEqual(response_body["marker"], "")
+
+    def test_initialize_response_body_includes_total_records(self):
+        """Test that response body includes totalIntelIndicatorRecords field."""
+        response_body = initialize_response_body()
+
+        self.assertIn("totalIntelIndicatorRecords", response_body)
+        self.assertEqual(response_body["totalIntelIndicatorRecords"], 0)
+
     def test_pull_urls_missing_credentials(self):
         """Test handling of missing credentials."""
         request = Mock()
@@ -250,7 +476,11 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         """Test successful URL lookup."""
         mock_intel_instance = MagicMock()
         mock_intel_instance.query_indicator_ids.return_value = {
-            "body": {"resources": ["url_malware:http://test-example.com"]}
+            "body": {
+                "resources": ["url_malware:http://test-example.com"],
+                "meta": {"pagination": {"total": 100}}
+            },
+            "headers": {}
         }
         mock_intel.return_value = mock_intel_instance
 
@@ -276,7 +506,11 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         """Test handling when no URLs are found."""
         mock_intel_instance = MagicMock()
         mock_intel_instance.query_indicator_ids.return_value = {
-            "body": {"resources": ["url_file:example.txt"]}
+            "body": {
+                "resources": ["url_file:example.txt"],
+                "meta": {"pagination": {"total": 1}}
+            },
+            "headers": {}
         }
         mock_intel.return_value = mock_intel_instance
 
@@ -298,7 +532,11 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         """Test handling of Zscaler API errors."""
         mock_intel_instance = MagicMock()
         mock_intel_instance.query_indicator_ids.return_value = {
-            "body": {"resources": ["url_malware:http://test-example.com"]}
+            "body": {
+                "resources": ["url_malware:http://test-example.com"],
+                "meta": {"pagination": {"total": 100}}
+            },
+            "headers": {}
         }
         mock_intel.return_value = mock_intel_instance
 
@@ -318,6 +556,131 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
 
         self.assertEqual(response.code, 500)
         self.assertIn("Failed to lookup URLs", response.body["errors"]["description"])
+
+    @patch('test_main.Intel')
+    @patch('test_main.url_lookup_with_retry')
+    def test_pull_urls_with_marker_parameter(self, mock_url_lookup, mock_intel):
+        """Test that marker from request is used in filter query."""
+        mock_intel_instance = MagicMock()
+        mock_intel_instance.query_indicator_ids.return_value = {
+            "body": {
+                "resources": ["url_malware:http://test-example.com"],
+                "meta": {"pagination": {"total": 100}}
+            },
+            "headers": {}
+        }
+        mock_intel.return_value = mock_intel_instance
+
+        mock_url_lookup.return_value = {
+            "status_code": 200,
+            "body": {"resources": [{"url": "test-example.com", "category": "safe"}]}
+        }
+
+        request = Mock()
+        request.body = {
+            "apiDefinitionId": "def123",
+            "apiOperationId": "op123",
+            "marker": "abc123marker",
+            "offset": 0
+        }
+
+        response = self.pull_urls_logic(request, self.config, self.logger)
+
+        # Verify query_indicator_ids was called with marker in filter
+        call_args = mock_intel_instance.query_indicator_ids.call_args
+        filter_arg = call_args.kwargs['filter']
+        self.assertIn("_marker:<'abc123marker'>", filter_arg)
+        self.assertEqual(response.code, 200)
+
+    @patch('test_main.Intel')
+    @patch('test_main.url_lookup_with_retry')
+    def test_pull_urls_extracts_total_records(self, mock_url_lookup, mock_intel):
+        """Test that total records are extracted from pagination metadata."""
+        mock_intel_instance = MagicMock()
+        mock_intel_instance.query_indicator_ids.return_value = {
+            "body": {
+                "resources": ["url_malware:http://test-example.com"],
+                "meta": {"pagination": {"total": 12345}}
+            },
+            "headers": {}
+        }
+        mock_intel.return_value = mock_intel_instance
+
+        mock_url_lookup.return_value = {
+            "status_code": 200,
+            "body": {"resources": [{"url": "test-example.com"}]}
+        }
+
+        request = Mock()
+        request.body = {
+            "apiDefinitionId": "def123",
+            "apiOperationId": "op123",
+            "offset": 0
+        }
+
+        response = self.pull_urls_logic(request, self.config, self.logger)
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body["totalIntelIndicatorRecords"], 12345)
+
+    @patch('test_main.Intel')
+    def test_pull_urls_handles_missing_pagination_metadata(self, mock_intel):
+        """Test handling when pagination metadata is missing."""
+        mock_intel_instance = MagicMock()
+        mock_intel_instance.query_indicator_ids.return_value = {
+            "body": {
+                "resources": ["url_malware:http://test-example.com"]
+                # Missing "meta" key
+            },
+            "headers": {}
+        }
+        mock_intel.return_value = mock_intel_instance
+
+        request = Mock()
+        request.body = {
+            "apiDefinitionId": "def123",
+            "apiOperationId": "op123",
+            "offset": 0
+        }
+
+        response = self.pull_urls_logic(request, self.config, self.logger)
+
+        # Should return 500 error due to KeyError
+        self.assertEqual(response.code, 500)
+        self.assertIn("Error handling request", response.body["errors"]["description"])
+
+    @patch('test_main.Intel')
+    @patch('test_main.url_lookup_with_retry')
+    def test_pull_urls_includes_marker_in_response(self, mock_url_lookup, mock_intel):
+        """Test that extracted marker is included in response body."""
+        mock_intel_instance = MagicMock()
+        mock_intel_instance.query_indicator_ids.return_value = {
+            "body": {
+                "resources": ["url_malware:http://test-example.com"],
+                "meta": {"pagination": {"total": 100}}
+            },
+            "headers": {
+                "Next-Page": "/intel/queries/indicators/v1?filter=_marker%3A%3C%27xyz789%27"
+            }
+        }
+        mock_intel.return_value = mock_intel_instance
+
+        mock_url_lookup.return_value = {
+            "status_code": 200,
+            "body": {"resources": [{"url": "test-example.com"}]}
+        }
+
+        request = Mock()
+        request.body = {
+            "apiDefinitionId": "def123",
+            "apiOperationId": "op123",
+            "offset": 0
+        }
+
+        response = self.pull_urls_logic(request, self.config, self.logger)
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body["marker"], "xyz789")
 
     def test_filter_urls_valid_domain(self):
         """Test filtering of valid domain."""

@@ -77,6 +77,14 @@
       },
       "type": "array"
     },
+    "marker": {
+      "type": "string",
+      "description": "Pagination marker to start the search from"
+    },
+    "totalIntelIndicatorRecords": {
+      "type": "integer",
+      "description": "Total indicators IDs that match provided FQL filters"
+    },
     "errors": {
       "type": "object"
     }
