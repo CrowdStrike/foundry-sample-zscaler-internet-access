@@ -1,43 +1,8 @@
 """Unit tests for get-url-category handler functionality."""
 import unittest
 from unittest.mock import Mock, patch
-from crowdstrike.foundry.function import Response
 from falconpy import APIIntegrations
-
-
-def initialize_response_body():
-    """Initialize response body structure."""
-    return {
-        "urlCategoryConfiguredName": "",
-        "urlCategoryId": "",
-        "errors": {
-            "description": "",
-            "errs": []
-        }
-    }
-
-
-def get_url_categories(logger, definition_id, operation_id):
-    """Get URL categories using Zscaler API."""
-    logger.info(
-        f"Getting URL categories using Zscaler API. "
-        f"definition_id: {definition_id}, operation_id: {operation_id}")
-
-    api = APIIntegrations(debug=False)
-    response = api.execute_command_proxy(
-        body={
-            "resources": [
-                {
-                    "definition_id": definition_id,
-                    "operation_id": operation_id,
-                }
-            ]
-        },
-    )
-
-    logger.info(f"Zscaler API response: {response}")
-
-    return response
+from main import initialize_response_body, get_url_categories, pull_urls_logic
 
 
 class TestGetUrlCategory(unittest.TestCase):
@@ -47,64 +12,6 @@ class TestGetUrlCategory(unittest.TestCase):
         """Set up test fixtures."""
         self.logger = Mock()
         self.config = {}
-
-    def pull_urls_logic(self, request, _config, logger):
-        """Retrieve URL category from Zscaler by configured name."""
-        definition_id = request.body.get('apiDefinitionId', "")
-        operation_id = request.body.get('apiOperationId', "")
-
-        url_category_name = request.body.get("urlCategoryConfiguredName", "")
-
-        response_body = initialize_response_body()
-
-        logger.info(
-            f"received request. definition_id: {definition_id}, "
-            f"operation_id: {operation_id}, "
-            f"url_category_name: {url_category_name}")
-
-        if not all([definition_id, operation_id, url_category_name]):
-            response_body['errors']['description'] = (
-                "Missing required credentials: definition_id, operation_id, url_category_name"
-            )
-            return Response(body=response_body, code=400)
-
-        logger.info("Zscaler getting URL categories...")
-
-        zscaler_response = get_url_categories(logger, definition_id, operation_id)
-        if zscaler_response["status_code"] != 200:
-            logger.error("Zscaler API return non 200 status code")
-            body = zscaler_response.get("body", {})
-            error_msg = "Failed to get URL categories using Zscaler API-Integration"
-            logger.error(f"{error_msg}; response body: {body}")
-
-            errors = body.get("errors", [])
-            response_body['errors']['description'] = error_msg
-            response_body['errors']['errs'] = errors
-            return Response(body=response_body, code=zscaler_response["status_code"])
-
-        url_categories_results = zscaler_response.get('body', {}).get('resources', [])
-        logger.info(f"All URL categories: {url_categories_results}")
-
-        for url_category in url_categories_results:
-            if (url_category['customCategory'] and
-                    url_category['configuredName'] == url_category_name):
-                response_body['urlCategoryConfiguredName'] = url_category_name
-                response_body['urlCategoryId'] = url_category['id']
-                logger.info(
-                    f"found URL category '{url_category_name}' "
-                    f"id: '{url_category['id']}'")
-                return Response(
-                    body=response_body,
-                    code=200
-                )
-
-        error_msg = f"URL category '{url_category_name}' not found"
-        logger.info(error_msg)
-        response_body['errors']['description'] = error_msg
-        return Response(
-            body=response_body,
-            code=404
-        )
 
     def test_initialize_response_body(self):
         """Test response body initialization."""
@@ -124,7 +31,7 @@ class TestGetUrlCategory(unittest.TestCase):
             "urlCategoryConfiguredName": ""
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 400)
         self.assertIn("Missing required credentials", response.body["errors"]["description"])
@@ -138,11 +45,11 @@ class TestGetUrlCategory(unittest.TestCase):
             "urlCategoryConfiguredName": "TestCategory"
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 400)
 
-    @patch('test_main.get_url_categories')
+    @patch('main.get_url_categories')
     def test_pull_urls_api_error(self, mock_get_url_categories):
         """Test handling of API errors."""
         mock_get_url_categories.return_value = {
@@ -157,12 +64,12 @@ class TestGetUrlCategory(unittest.TestCase):
             "urlCategoryConfiguredName": "TestCategory"
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 500)
         self.assertIn("Failed to get URL categories", response.body["errors"]["description"])
 
-    @patch('test_main.get_url_categories')
+    @patch('main.get_url_categories')
     def test_pull_urls_category_not_found(self, mock_get_url_categories):
         """Test handling when URL category is not found."""
         mock_get_url_categories.return_value = {
@@ -185,12 +92,12 @@ class TestGetUrlCategory(unittest.TestCase):
             "urlCategoryConfiguredName": "TestCategory"
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 404)
         self.assertIn("not found", response.body["errors"]["description"])
 
-    @patch('test_main.get_url_categories')
+    @patch('main.get_url_categories')
     def test_pull_urls_category_found(self, mock_get_url_categories):
         """Test successful URL category retrieval."""
         mock_get_url_categories.return_value = {
@@ -213,13 +120,13 @@ class TestGetUrlCategory(unittest.TestCase):
             "urlCategoryConfiguredName": "TestCategory"
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body["urlCategoryConfiguredName"], "TestCategory")
         self.assertEqual(response.body["urlCategoryId"], "cat123")
 
-    @patch('test_main.get_url_categories')
+    @patch('main.get_url_categories')
     def test_pull_urls_non_custom_category_skipped(self, mock_get_url_categories):
         """Test that non-custom categories are skipped."""
         mock_get_url_categories.return_value = {
@@ -242,7 +149,7 @@ class TestGetUrlCategory(unittest.TestCase):
             "urlCategoryConfiguredName": "TestCategory"
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 404)
 

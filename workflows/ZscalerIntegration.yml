@@ -13,17 +13,21 @@ parameters:
 provision_on_install: true
 trigger:
     next:
-        - CreateVariable2
+        - CreateVariable
+    name: On demand
     type: On demand
 actions:
-    CreateVariable2:
-        next:
-            - GetUrlCategory
+    CreateVariable:
         id: 702d15788dbbffdf0b68d8e2f3599aa4
         class: CreateVariable
+        name: Create variable
+        next:
+            - GetUrlCategory
         properties:
             variable_schema:
                 properties:
+                    PaginationMarker:
+                        type: string
                     UrlCategoryConfiguredName:
                         type: string
                     UrlCategoryID:
@@ -33,18 +37,20 @@ actions:
                 type: object
         version_constraint: ~1
     GetUrlCategory:
+        id: functions.get-url-category.get-url-category
+        name: get-url-category
         next:
             - urlcategoryid_exists_urlcategoryconfiguredname_exists
-        id: functions.get-url-category.get-url-category
         properties:
             apiDefinitionId: ZIA Cloud Service API
             apiOperationId: _GET_urlcategories_lite
         version_constraint: ~0
     UpdateVariable2:
-        next:
-            - iterations_handler_7b9614a1
         id: 6c6eab39063fa3b72d98c82af60deb8a
         class: UpdateVariable
+        name: Update variable
+        next:
+            - iterations_handler_7b9614a1
         properties:
             WorkflowCustomVariable:
                 UrlCategoryConfiguredName: ${data['GetUrlCategory.FaaS.get-url-category.get-url-category.urlCategoryConfiguredName']}
@@ -52,15 +58,17 @@ actions:
         version_constraint: ~1
     activate_changes_1c6055a6:
         id: api_integrations.ZIA Cloud Service API._POST__status_activate
+        name: Activate Changes
         properties:
             json: '{}'
             params:
                 header:
                     Content-Type: application/json
     iterations_handler_7b9614a1:
+        id: functions.iterations.iterations-handler
+        name: iterations-handler
         next:
             - activity_7b9614a1_28fa_4a5b_b923_7ee07f42f792_faas_iterations_iterations_handler_offset_18bc5891
-        id: functions.iterations.iterations-handler
         properties: {}
 conditions:
     urlcategoryid_exists_urlcategoryconfiguredname_exists:
@@ -83,27 +91,37 @@ loops:
                 - PullLookupUrls
         actions:
             ExtractHandler2:
+                id: functions.extract.extract-handler
+                name: extract-handler
                 next:
                     - PushIocsToZiaHandler2
-                id: functions.extract.extract-handler
                 properties:
                     json:
                         json:
                             list: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results']}
                 version_constraint: ~0
+            LoopBreak:
+                id: 08277433694a898fee7a993d614d9836
+                class: Break
+                name: Loop break
+                properties:
+                    sub_model_node_id: activity_7b9614a1_28fa_4a5b_b923_7ee07f42f792_faas_iterations_iterations_handler_offset_18bc5891
             PullLookupUrls:
-                next:
-                    - WriteToLogRepo2
                 id: functions.pull-lookup-urls.pull-lookup-urls
+                name: pull-lookup-urls
+                next:
+                    - WriteToLogRepo
                 properties:
                     apiDefinitionId: ZIA Cloud Service API
                     apiOperationId: _POST__urllookup
+                    marker: ${data['WorkflowCustomVariable.PaginationMarker']}
                     offset: ${iterations_handler_7b9614a1.FaaS.iterations.iterations-handler.offset.#}
                 version_constraint: ~0
             PushIocsToZiaHandler2:
-                next:
-                    - WriteToLogRepo3
                 id: functions.push-iocs-to-zia.push-iocs-to-zia-handler
+                name: push-iocs-to-zia-handler
+                next:
+                    - WritePushIOCsHandlerResponseToLogRepo
                 properties:
                     action: ADD_TO_LIST
                     apiDefinitionId: ZIA Cloud Service API
@@ -115,20 +133,21 @@ loops:
                     urls:
                         - ${ExtractHandler2.FaaS.extract.extract-handler.urls}
                 version_constraint: ~0
-            WriteToLogRepo2:
+            UpdatePaginationMarkerValue:
+                id: 6c6eab39063fa3b72d98c82af60deb8a
+                class: UpdateVariable
+                name: Update pagination marker value
                 next:
-                    - lookup_results_exists
-                id: 0ec68880256f6192b9abef766d31fb04
+                    - datapulllookupurls_faas_pull_lookup_urls_pull_lookup_urls_lookup_results__null_sizedatapulllookupurl
                 properties:
-                    custom_json:
-                        errors: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.errors']}
-                        lookup_result: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results']}
-                        type: pull-lookup-urls-result
-                        urls: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.urls']}
-                    foundry_app_id: ${{FOUNDRY_APP_ID}}
+                    WorkflowCustomVariable:
+                        PaginationMarker: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.marker']}
                 version_constraint: ~1
-            WriteToLogRepo3:
+            WritePushIOCsHandlerResponseToLogRepo:
                 id: 0ec68880256f6192b9abef766d31fb04
+                name: write push IOCs handler response to log repo
+                next:
+                    - paginationmarker_does_not_exist
                 properties:
                     custom_json:
                         errors: ${data['PushIocsToZiaHandler2.FaaS.push-iocs-to-zia.push-iocs-to-zia-handler.errors']}
@@ -139,10 +158,35 @@ loops:
                         urls: ${data['PushIocsToZiaHandler2.FaaS.push-iocs-to-zia.push-iocs-to-zia-handler.urls']}
                     foundry_app_id: ${{FOUNDRY_APP_ID}}
                 version_constraint: ~1
+            WriteToLogRepo:
+                id: 0ec68880256f6192b9abef766d31fb04
+                name: Write to log repo
+                next:
+                    - UpdatePaginationMarkerValue
+                properties:
+                    custom_json:
+                        errors: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.errors']}
+                        lookup_result: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results']}
+                        marker: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.marker']}
+                        totalIntelIndicatorRecords: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.totalIntelIndicatorRecords']}
+                        type: pull-lookup-urls-result
+                        urls: ${data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.urls']}
+                    foundry_app_id: ${{FOUNDRY_APP_ID}}
+                version_constraint: ~1
         conditions:
-            lookup_results_exists:
+            datapulllookupurls_faas_pull_lookup_urls_pull_lookup_urls_lookup_results__null_sizedatapulllookupurl:
                 next:
                     - ExtractHandler2
-                expression: PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results:!null
+                cel_expression: |-
+                    data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results'] != null &&
+                    size(data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results']) > 0
                 display:
-                    - Lookup results exists
+                    - |-
+                      data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results'] != null &&
+                      size(data['PullLookupUrls.FaaS.pull-lookup-urls.pull-lookup-urls.lookup_results']) > 0
+            paginationmarker_does_not_exist:
+                next:
+                    - LoopBreak
+                expression: WorkflowCustomVariable.PaginationMarker:null
+                display:
+                    - PaginationMarker does not exist

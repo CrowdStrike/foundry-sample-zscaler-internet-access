@@ -12,7 +12,12 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 
 @FUNC.handler(method='POST', path='/push-iocs-to-zia')
-def pull_urls(request: Request, _config, logger: Logger) -> Response:
+def pull_urls(request: Request, config, logger: Logger) -> Response:
+    """Handler wrapper for push-iocs-to-zia logic."""
+    return pull_urls_logic(request, config, logger)
+
+
+def pull_urls_logic(request: Request, _config, logger: Logger) -> Response:
     """Push indicators of compromise to Zscaler Internet Access."""
     definition_id = request.body.get('apiDefinitionId', "")
     operation_id = request.body.get('apiOperationId', "")

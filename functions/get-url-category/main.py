@@ -10,7 +10,12 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 
 @FUNC.handler(method='GET', path='/get-url-category')
-def pull_urls(request: Request, _config, logger: Logger) -> Response:
+def pull_urls(request: Request, config, logger: Logger) -> Response:
+    """Handler wrapper for get-url-category logic."""
+    return pull_urls_logic(request, config, logger)
+
+
+def pull_urls_logic(request: Request, _config, logger: Logger) -> Response:
     """Retrieve URL category from Zscaler by configured name."""
     definition_id = request.body.get('apiDefinitionId', "")
     operation_id = request.body.get('apiOperationId', "")
@@ -93,9 +98,7 @@ def get_url_categories(logger, definition_id, operation_id):
 
 
 def initialize_response_body() -> dict:
-    """
-    Initialize response body.
-    """
+    """Initialize response body."""
     return {
         "urlCategoryConfiguredName": "",
         "urlCategoryId": "",

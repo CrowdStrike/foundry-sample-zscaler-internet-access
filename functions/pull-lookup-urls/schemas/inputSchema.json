@@ -12,6 +12,10 @@
       "type": "string",
       "description": "API integration operation ID"
     },
+     "marker": {
+      "type": "string",
+      "description": "Pagination marker to start the search from"
+    },
     "retryBackoffSchedule": {
       "description": "Zscaler API retry backoff schedule",
       "items": {

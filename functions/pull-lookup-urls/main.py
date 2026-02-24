@@ -4,6 +4,7 @@ import logging
 import re
 import time
 from logging import Logger
+from urllib.parse import unquote
 
 from crowdstrike.foundry.function import Function, Request, Response
 from falconpy import APIIntegrations, Intel
@@ -13,17 +14,22 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 
 @FUNC.handler(method='GET', path='/pull-lookup-urls')
-def pull_urls(request: Request, _config, logger: Logger) -> Response:
+def pull_urls(request: Request, config, logger: Logger) -> Response:
+    """Handler wrapper for pull-lookup-urls logic."""
+    return pull_urls_logic(request, config, logger)
+
+
+def pull_urls_logic(request: Request, _config, logger: Logger) -> Response:
     """Pull URLs from CrowdStrike Intel and perform Zscaler lookup."""
     response_body = initialize_response_body()
     try:
         definition_id = request.body.get('apiDefinitionId', "")
         operation_id = request.body.get('apiOperationId', "")
-
-        offset = request.body.get("offset", 0)
+        marker = request.body.get('marker', "")
 
         logger.info(f"received request. definition_id: {definition_id}, "
-                    f"operation_id: {operation_id}, offset: {offset}")
+                    f"operation_id: {operation_id}, marker: {marker}, "
+                    f"offset: {request.body.get('offset', 0)}")
 
         if not all([definition_id, operation_id]):
             return Response(
@@ -34,15 +40,27 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
             )
 
         intel_client = Intel()
-        offset = int(offset)
+
+        # Build filter based on marker presence
+        filter_query = "type:'url'+malicious_confidence:'high'"
+        if marker:
+            filter_query = f"{filter_query}+_marker:<'{marker}'"
+        logger.info(f"Using filter query: {filter_query}")
         response = intel_client.query_indicator_ids(
             limit=100,
-            offset=offset,
-            filter="type:'url'+malicious_confidence:'high'",
+            filter=filter_query,
             include_deleted=False,
         )
 
         logger.info(f"CrowdStrike intel response: {response}")
+
+        # Extract marker and total records
+        response_body['marker'] = get_marker_from_next_page_header(
+            logger, response.get("headers", {}))
+
+        response_body['totalIntelIndicatorRecords'] = (
+            response["body"]["meta"]["pagination"]["total"])
+
         batch = response["body"]["resources"]
 
         filtered_urls = []
@@ -121,7 +139,6 @@ def url_lookup(logger, definition_id, operation_id, urls):
 def url_lookup_with_retry(
         logger, definition_id, operation_id, urls):
     """Perform URL lookup using Zscaler API with retry logic for 429 errors."""
-
     max_retries = 3
     backoff_schedule = [2, 3, 5]
 
@@ -188,6 +205,37 @@ def get_retry_after_from_headers(logger, headers):
     return 300
 
 
+def get_marker_from_next_page_header(logger, headers):
+    """
+    Extract _marker value from Next-Page response header.
+
+    Args:
+        logger: Logger instance for logging
+        headers: Response headers dictionary
+
+    Returns:
+        Extracted marker value as string, or empty string if not found
+    """
+    logger.info(f"Getting Next-Page response header: {headers}")
+    next_page_header = headers.get("Next-Page")
+
+    if next_page_header:
+        # URL decode the header first (marker is URL-encoded)
+        decoded_header = unquote(next_page_header)
+        logger.info(f"Decoded Next-Page header: {decoded_header}")
+
+        # Extract _marker value from Next-Page header (format: _marker:<'value'>)
+        match = re.search(r"_marker:<'([^']+)'", decoded_header)
+        if match:
+            marker = match.group(1)
+            logger.info(f"Extracted marker from Next-Page header: {marker}")
+            return marker
+    else:
+        logger.info("Next-Page response header not found. Means its a last page")
+
+    return ""
+
+
 def filter_urls(prepared, indicator):
     """
     Filter and transform URLs for Zscaler API ingestion.
@@ -233,6 +281,8 @@ def initialize_response_body() -> dict:
     return {
         "lookup_results": [],
         "urls": [],
+        "marker":"",
+        "totalIntelIndicatorRecords":0,
         "errors": {
             "description": "",
             "errs": []
