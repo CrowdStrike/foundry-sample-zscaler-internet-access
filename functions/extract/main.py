@@ -7,7 +7,11 @@ FUNC = Function.instance()
 
 
 @FUNC.handler(method='POST', path='/extract')
-def extract_handler(request: Request, _config, logger: Logger) -> Response:
+def extract_handler(request: Request, config, logger: Logger) -> Response:
+    """Handler wrapper for extract logic."""
+    return extract_logic(request, config, logger)
+
+def extract_logic(request: Request, _config, logger: Logger) -> Response:
     """Extract URLs from lookup results based on classification criteria."""
     modeled_urls = []
     logger.info(f"Request body: {request.body}")

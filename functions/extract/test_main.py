@@ -1,7 +1,7 @@
 """Unit tests for extract handler functionality."""
 import unittest
 from unittest.mock import Mock
-from crowdstrike.foundry.function import Response
+from main import extract_logic
 
 
 class TestExtractHandler(unittest.TestCase):
@@ -11,32 +11,6 @@ class TestExtractHandler(unittest.TestCase):
         """Set up test fixtures."""
         self.logger = Mock()
         self.config = {}
-
-    def extract_logic(self, request, _config, logger):
-        """Extract and filter URLs based on classification criteria."""
-        modeled_urls = []
-        logger.info(f"Request body: {request.body}")
-        lookup_results = request.body.get("json")
-        lookup_results = lookup_results["json"]["list"]
-        for url in lookup_results:
-            logger.info(f"Url type: {type(url)}")
-            if url['urlClassificationsWithSecurityAlert']:
-                pass
-            elif 'urlClassifications' not in url:
-                modeled_urls.append(url['url'])
-            elif 'MISCELLANEOUS_OR_UNKNOWN' in url['urlClassifications']:
-                modeled_urls.append(url['url'])
-            else:
-                modeled_urls.append(url['url'])
-
-        logger.info(f"modeled Urls: {modeled_urls}")
-
-        return Response(
-            body={
-                "urls": modeled_urls,
-            },
-            code=200
-        )
 
     def test_extract_handler_with_security_alert(self):
         """Test that URLs with security alerts are filtered out."""
@@ -54,7 +28,7 @@ class TestExtractHandler(unittest.TestCase):
             }
         }
 
-        response = self.extract_logic(request, self.config, self.logger)
+        response = extract_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body["urls"], [])
@@ -75,7 +49,7 @@ class TestExtractHandler(unittest.TestCase):
             }
         }
 
-        response = self.extract_logic(request, self.config, self.logger)
+        response = extract_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body["urls"], ["http://unknown.com"])
@@ -97,7 +71,7 @@ class TestExtractHandler(unittest.TestCase):
             }
         }
 
-        response = self.extract_logic(request, self.config, self.logger)
+        response = extract_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body["urls"], ["http://misc.com"])
@@ -119,7 +93,7 @@ class TestExtractHandler(unittest.TestCase):
             }
         }
 
-        response = self.extract_logic(request, self.config, self.logger)
+        response = extract_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body["urls"], ["http://normal.com"])
@@ -149,7 +123,7 @@ class TestExtractHandler(unittest.TestCase):
             }
         }
 
-        response = self.extract_logic(request, self.config, self.logger)
+        response = extract_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(len(response.body["urls"]), 2)

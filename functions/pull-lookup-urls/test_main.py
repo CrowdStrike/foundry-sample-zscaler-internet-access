@@ -1,175 +1,18 @@
 """Unit tests for pull-lookup-urls handler functionality."""
 import unittest
-import http
-import re
-import time
 from unittest.mock import Mock, patch, MagicMock
-from urllib.parse import unquote
-from crowdstrike.foundry.function import Response
-from falconpy import APIIntegrations, Intel
+from falconpy import APIIntegrations
+from main import (
+    initialize_response_body,
+    filter_urls,
+    get_retry_after_from_headers,
+    url_lookup,
+    url_lookup_with_retry,
+    get_marker_from_next_page_header,
+    pull_urls_logic
+)
 
 
-def initialize_response_body():
-    """Initialize response body structure."""
-    return {
-        "lookup_results": [],
-        "urls": [],
-        "marker": "",
-        "totalIntelIndicatorRecords": 0,
-        "errors": {
-            "description": "",
-            "errs": []
-        }
-    }
-
-
-def filter_urls(prepared, indicator):
-    """Filter and transform URLs for Zscaler API ingestion."""
-    file_regex = r"^url_file:"
-    prefix_regex = r'^.*?_'
-    http_regex = r"(?<=//).*"
-    final_regex = (
-        r"(?!.*[-_.]$)^(https?:\/\/)*[a-z0-9-]+(\.[a-z0-9-]+)+([\/\?].+|[\/])?$"
-    )
-    a_file = bool(re.search(file_regex, indicator))
-    if not a_file:
-        indicator = re.sub(prefix_regex, '', indicator)
-        has_http_prefix = re.search(http_regex, indicator)
-        if has_http_prefix:
-            indicator = has_http_prefix.group()
-        indicator = indicator.split(":", 1)[0]
-        encoded = indicator.encode('ascii', 'ignore')
-        indicator = encoded.decode()
-        is_prepared = re.search(final_regex, indicator, re.IGNORECASE)
-        is_rfc_1918 = (
-            indicator[:3] == "10." or
-            indicator[:4] == "172." or
-            indicator[:4] == "192."
-        )
-        if is_prepared and not is_rfc_1918:
-            prepared.append(indicator)
-
-    return prepared
-
-
-def get_retry_after_from_headers(logger, headers):
-    """Extract Retry-After value from response headers."""
-    for header_name, header_value in headers.items():
-        if header_name.lower() == 'retry-after':
-            try:
-                logger.info(f"retry-after header value: {header_value}")
-                return int(header_value[0])
-            except (ValueError, TypeError, IndexError):
-                logger.info(f"Could not parse Retry-After header value: {header_value}")
-                break
-
-    logger.info(
-        "Retry-After header not found or malformed, using default 5 minutes")
-    return 300
-
-
-def url_lookup(logger, definition_id, operation_id, urls):
-    """Perform URL lookup using Zscaler API."""
-    logger.info(
-        f"Performing URL lookup using Zscaler API. "
-        f"definition_id: {definition_id}, "
-        f"operation_id: {operation_id}, "
-        f"urls: {urls}")
-
-    api = APIIntegrations(debug=False)
-    response = api.execute_command_proxy(
-        body={
-            "resources": [
-                {
-                    "definition_id": definition_id,
-                    "operation_id": operation_id,
-                    "request": {
-                        "json": urls
-                    },
-                }
-            ]
-        },
-    )
-
-    logger.info(f"Zscaler API response: {response}")
-    return response
-
-
-def url_lookup_with_retry(logger, definition_id, operation_id, urls):
-    """Perform URL lookup with retry logic for failures."""
-    max_retries = 3
-    backoff_schedule = [2, 3, 5]
-
-    retryable_codes = {
-        http.HTTPStatus.TOO_MANY_REQUESTS,
-        http.HTTPStatus.UNAUTHORIZED,
-        http.HTTPStatus.INTERNAL_SERVER_ERROR,
-        http.HTTPStatus.BAD_GATEWAY,
-        http.HTTPStatus.SERVICE_UNAVAILABLE
-    }
-
-    for attempt in range(max_retries + 1):
-        response = url_lookup(logger, definition_id, operation_id, urls)
-
-        if (attempt < max_retries and
-                response["status_code"] == http.HTTPStatus.MULTI_STATUS):
-            resources = response.get("body", {}).get("resources", [])
-
-            if resources:
-                resource_status_code = resources[0].get("status_code")
-
-                if resource_status_code in retryable_codes:
-                    if resource_status_code == http.HTTPStatus.TOO_MANY_REQUESTS:
-                        wait_time = get_retry_after_from_headers(
-                            logger, resources[0].get("headers", {}))
-                    else:
-                        wait_time = backoff_schedule[attempt]
-
-                    logger.info(
-                        f"Received status code {resource_status_code}. "
-                        f"Retrying in {wait_time} seconds. "
-                        f"Attempt {attempt + 1}/{max_retries + 1}"
-                    )
-                    time.sleep(wait_time)
-                    continue
-
-        if attempt == max_retries:
-            logger.warning(f"Max retries ({max_retries}) exceeded.")
-
-        return response
-
-    return None
-
-
-def get_marker_from_next_page_header(logger, headers):
-    """
-    Extract _marker value from Next-Page response header.
-
-    Args:
-        logger: Logger instance for logging
-        headers: Response headers dictionary
-
-    Returns:
-        Extracted marker value as string, or empty string if not found
-    """
-    logger.info(f"Getting Next-Page response header: {headers}")
-    next_page_header = headers.get("Next-Page")
-
-    if next_page_header:
-        # URL decode the header first (marker is URL-encoded)
-        decoded_header = unquote(next_page_header)
-        logger.info(f"Decoded Next-Page header: {decoded_header}")
-
-        # Extract _marker value from Next-Page header (format: _marker:<'value'>)
-        match = re.search(r"_marker:<'([^']+)'", decoded_header)
-        if match:
-            marker = match.group(1)
-            logger.info(f"Extracted marker from Next-Page header: {marker}")
-            return marker
-    else:
-        logger.info("Next-Page response header not found. Means its a last page")
-
-    return ""
 
 
 class TestMarkerExtraction(unittest.TestCase):
@@ -342,98 +185,6 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         self.logger = Mock()
         self.config = {}
 
-    def pull_urls_logic(self, request, _config, logger):
-        """Pull URLs from CrowdStrike Intel and perform Zscaler lookup."""
-        response_body = initialize_response_body()
-        try:
-            definition_id = request.body.get('apiDefinitionId', "")
-            operation_id = request.body.get('apiOperationId', "")
-            marker = request.body.get('marker', "")
-
-            offset = request.body.get("offset", 0)
-
-            logger.info(f"received request. definition_id: {definition_id}, "
-                        f"operation_id: {operation_id}, marker: {marker}, offset: {offset}")
-
-            if not all([definition_id, operation_id]):
-                return Response(
-                    body={
-                        "error": "Missing required credentials: definition_id, operation_id"
-                    },
-                    code=400
-                )
-
-            intel_client = Intel()
-            # offset = int(offset)
-
-            filter_query = "type:'url'+malicious_confidence:'high'"
-            # Build filter based on marker presence
-            if marker:
-                filter_query = f"{filter_query}+_marker:<'{marker}'>"
-            logger.info(f"Using filter query: {filter_query}")
-
-            response = intel_client.query_indicator_ids(
-                limit=100,
-                filter=filter_query,
-                include_deleted=False,
-            )
-
-            logger.info(f"CrowdStrike intel response: {response}")
-
-            # Extract _marker value from Next-Page response header
-            headers = response.get("headers", {})
-            response_body['marker'] = get_marker_from_next_page_header(logger, headers)
-
-            # Extract total records from response body
-            total_intel_indicator_records = response["body"]["meta"]["pagination"]["total"]
-            response_body['totalIntelIndicatorRecords'] = total_intel_indicator_records
-
-            batch = response["body"]["resources"]
-
-            filtered_urls = []
-            for url in batch:
-                filtered_urls = filter_urls(filtered_urls, url)
-
-            if not filtered_urls:
-                response_body['errors']['description'] = "No URL/s found to lookup"
-                return Response(
-                    body=response_body,
-                    code=200
-                )
-
-            logger.info(f"Zscaler performing URL lookup for URLs: {filtered_urls}")
-
-            response_body['urls'] = filtered_urls
-
-            zscaler_response = url_lookup_with_retry(
-                logger, definition_id, operation_id, filtered_urls)
-            if zscaler_response["status_code"] != 200:
-                logger.error(
-                    f"Zscaler API return non 200 status code; response: {zscaler_response}")
-
-                response_body['errors']['description'] = "Failed to lookup URLs"
-                response_body['errors']['errs'] = (
-                    zscaler_response.get("body", {}).get("errors", []))
-                return Response(
-                    body=response_body,
-                    code=zscaler_response["status_code"]
-                )
-
-            lookup_results = zscaler_response.get('body', {}).get('resources', [])
-            logger.info(f"lookup_results: {lookup_results}")
-            response_body['lookup_results'] = lookup_results
-            return Response(
-                body=response_body,
-                code=200
-            )
-        except (ValueError, KeyError, TypeError) as e:
-            logger.error(f"Error while handling request: {e}")
-            response_body['errors']['description'] = f"Error handling request: {e}"
-            return Response(
-                body=response_body,
-                code=500
-            )
-
     def test_initialize_response_body(self):
         """Test response body initialization."""
         response_body = initialize_response_body()
@@ -465,13 +216,13 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "apiOperationId": ""
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 400)
         self.assertIn("Missing required credentials", response.body["error"])
 
-    @patch('test_main.Intel')
-    @patch('test_main.url_lookup_with_retry')
+    @patch('main.Intel')
+    @patch('main.url_lookup_with_retry')
     def test_pull_urls_success(self, mock_url_lookup, mock_intel):
         """Test successful URL lookup."""
         mock_intel_instance = MagicMock()
@@ -496,12 +247,12 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "offset": 0
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertIn("lookup_results", response.body)
 
-    @patch('test_main.Intel')
+    @patch('main.Intel')
     def test_pull_urls_no_urls_found(self, mock_intel):
         """Test handling when no URLs are found."""
         mock_intel_instance = MagicMock()
@@ -521,13 +272,13 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "offset": 0
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertIn("No URL/s found", response.body["errors"]["description"])
 
-    @patch('test_main.Intel')
-    @patch('test_main.url_lookup_with_retry')
+    @patch('main.Intel')
+    @patch('main.url_lookup_with_retry')
     def test_pull_urls_zscaler_error(self, mock_url_lookup, mock_intel):
         """Test handling of Zscaler API errors."""
         mock_intel_instance = MagicMock()
@@ -552,13 +303,13 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "offset": 0
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 500)
         self.assertIn("Failed to lookup URLs", response.body["errors"]["description"])
 
-    @patch('test_main.Intel')
-    @patch('test_main.url_lookup_with_retry')
+    @patch('main.Intel')
+    @patch('main.url_lookup_with_retry')
     def test_pull_urls_with_marker_parameter(self, mock_url_lookup, mock_intel):
         """Test that marker from request is used in filter query."""
         mock_intel_instance = MagicMock()
@@ -584,16 +335,16 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "offset": 0
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         # Verify query_indicator_ids was called with marker in filter
         call_args = mock_intel_instance.query_indicator_ids.call_args
         filter_arg = call_args.kwargs['filter']
-        self.assertIn("_marker:<'abc123marker'>", filter_arg)
+        self.assertIn("_marker:<'abc123marker'", filter_arg)
         self.assertEqual(response.code, 200)
 
-    @patch('test_main.Intel')
-    @patch('test_main.url_lookup_with_retry')
+    @patch('main.Intel')
+    @patch('main.url_lookup_with_retry')
     def test_pull_urls_extracts_total_records(self, mock_url_lookup, mock_intel):
         """Test that total records are extracted from pagination metadata."""
         mock_intel_instance = MagicMock()
@@ -618,12 +369,12 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "offset": 0
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body["totalIntelIndicatorRecords"], 12345)
 
-    @patch('test_main.Intel')
+    @patch('main.Intel')
     def test_pull_urls_handles_missing_pagination_metadata(self, mock_intel):
         """Test handling when pagination metadata is missing."""
         mock_intel_instance = MagicMock()
@@ -643,14 +394,14 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "offset": 0
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         # Should return 500 error due to KeyError
         self.assertEqual(response.code, 500)
         self.assertIn("Error handling request", response.body["errors"]["description"])
 
-    @patch('test_main.Intel')
-    @patch('test_main.url_lookup_with_retry')
+    @patch('main.Intel')
+    @patch('main.url_lookup_with_retry')
     def test_pull_urls_includes_marker_in_response(self, mock_url_lookup, mock_intel):
         """Test that extracted marker is included in response body."""
         mock_intel_instance = MagicMock()
@@ -677,7 +428,7 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
             "offset": 0
         }
 
-        response = self.pull_urls_logic(request, self.config, self.logger)
+        response = pull_urls_logic(request, self.config, self.logger)
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body["marker"], "xyz789")
@@ -769,7 +520,7 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertEqual(result["status_code"], 200)
         mock_execute.assert_called_once()
 
-    @patch('test_main.url_lookup')
+    @patch('main.url_lookup')
     def test_url_lookup_with_retry_success_first_attempt(self, mock_url_lookup):
         """Test successful retry on first attempt."""
         mock_url_lookup.return_value = {
@@ -782,8 +533,8 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertEqual(result["status_code"], 200)
         self.assertEqual(mock_url_lookup.call_count, 1)
 
-    @patch('test_main.url_lookup')
-    @patch('test_main.time.sleep')
+    @patch('main.url_lookup')
+    @patch('main.time.sleep')
     def test_url_lookup_with_retry_429_error(self, mock_sleep, mock_url_lookup):
         """Test retry logic for 429 rate limit errors."""
         mock_url_lookup.side_effect = [
@@ -808,8 +559,8 @@ class TestPullLookupUrls(unittest.TestCase):  # pylint: disable=too-many-public-
         self.assertEqual(mock_url_lookup.call_count, 2)
         mock_sleep.assert_called_once_with(2)
 
-    @patch('test_main.url_lookup')
-    @patch('test_main.time.sleep')
+    @patch('main.url_lookup')
+    @patch('main.time.sleep')
     def test_url_lookup_with_retry_max_retries(self, _mock_sleep, mock_url_lookup):
         """Test retry logic exceeding maximum retries."""
         mock_url_lookup.return_value = {

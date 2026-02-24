@@ -14,7 +14,12 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 
 @FUNC.handler(method='GET', path='/pull-lookup-urls')
-def pull_urls(request: Request, _config, logger: Logger) -> Response:
+def pull_urls(request: Request, config, logger: Logger) -> Response:
+    """Handler wrapper for pull-lookup-urls logic."""
+    return pull_urls_logic(request, config, logger)
+
+
+def pull_urls_logic(request: Request, _config, logger: Logger) -> Response:
     """Pull URLs from CrowdStrike Intel and perform Zscaler lookup."""
     response_body = initialize_response_body()
     try:
@@ -22,10 +27,9 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
         operation_id = request.body.get('apiOperationId', "")
         marker = request.body.get('marker', "")
 
-        offset = request.body.get("offset", 0)
-
         logger.info(f"received request. definition_id: {definition_id}, "
-                    f"operation_id: {operation_id}, marker: {marker}, offset: {offset}")
+                    f"operation_id: {operation_id}, marker: {marker}, "
+                    f"offset: {request.body.get('offset', 0)}")
 
         if not all([definition_id, operation_id]):
             return Response(
@@ -36,10 +40,9 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
             )
 
         intel_client = Intel()
-        # offset = int(offset)
 
-        filter_query = "type:'url'+malicious_confidence:'high'"
         # Build filter based on marker presence
+        filter_query = "type:'url'+malicious_confidence:'high'"
         if marker:
             filter_query = f"{filter_query}+_marker:<'{marker}'"
         logger.info(f"Using filter query: {filter_query}")
@@ -51,13 +54,12 @@ def pull_urls(request: Request, _config, logger: Logger) -> Response:
 
         logger.info(f"CrowdStrike intel response: {response}")
 
-        # Extract _marker value from Next-Page response header
-        headers = response.get("headers", {})
-        response_body['marker'] = get_marker_from_next_page_header(logger, headers)
+        # Extract marker and total records
+        response_body['marker'] = get_marker_from_next_page_header(
+            logger, response.get("headers", {}))
 
-        # Extract total records from response body
-        total_intel_indicator_records = response["body"]["meta"]["pagination"]["total"]
-        response_body['totalIntelIndicatorRecords']=total_intel_indicator_records
+        response_body['totalIntelIndicatorRecords'] = (
+            response["body"]["meta"]["pagination"]["total"])
 
         batch = response["body"]["resources"]
 
@@ -137,7 +139,6 @@ def url_lookup(logger, definition_id, operation_id, urls):
 def url_lookup_with_retry(
         logger, definition_id, operation_id, urls):
     """Perform URL lookup using Zscaler API with retry logic for 429 errors."""
-
     max_retries = 3
     backoff_schedule = [2, 3, 5]
 
