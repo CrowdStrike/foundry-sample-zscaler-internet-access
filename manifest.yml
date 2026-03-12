@@ -48,7 +48,7 @@ functions:
           request_schema: schemas/inputSchema.json
           response_schema: schemas/outputSchema.json
           workflow_integration:
-            id: 7a5a6cb56bde49588d67daf180f6afb5
+            id:
             disruptive: false
             system_action: false
             tags: []
@@ -69,7 +69,7 @@ functions:
           request_schema: schemas/inputSchema.json
           response_schema: schemas/outputSchema.json
           workflow_integration:
-            id: 6a01f0c7a3104956a6ee6d53b1f8fcf0
+            id:
             disruptive: false
             system_action: false
             tags: []
@@ -90,7 +90,7 @@ functions:
           request_schema: schemas/inputSchema.json
           response_schema: schemas/outputSchema.json
           workflow_integration:
-            id: 47cc37dcb5214ebc9c3626348b3af02a
+            id:
             disruptive: false
             system_action: false
             tags: []
@@ -112,7 +112,7 @@ functions:
           request_schema: schemas/inputSchema.json
           response_schema: schemas/outputSchema.json
           workflow_integration:
-            id: 6677fbc410f6496a94877ae04bf89bfa
+            id:
             disruptive: false
             system_action: false
             tags: []
@@ -133,7 +133,7 @@ functions:
           request_schema: schemas/inputSchema.json
           response_schema: schemas/outputSchema.json
           workflow_integration:
-            id: f74e025a152b4ea6a7ff95e2cc71e6f5
+            id:
             disruptive: false
             system_action: false
             tags: []
