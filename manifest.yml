@@ -6,7 +6,9 @@ vendor: "Zscaler"
 vendor_products: []
 use_case: Cloud security
 manifest_version: "2023-05-09"
-ignored: []
+ignored:
+  - e2e
+  - e2e/.+
 ui:
     homepage: ""
     extensions: []
