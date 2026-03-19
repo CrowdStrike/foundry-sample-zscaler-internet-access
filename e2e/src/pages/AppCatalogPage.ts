@@ -171,25 +171,48 @@ export class AppCatalogPage extends BasePage {
   private getFieldValue(context: string, name: string, placeholder: string, inputType: string): string {
     const combined = `${context} ${name} ${placeholder}`.toLowerCase();
 
-    // OAuth credentials need realistic base64-like formats
-    if (combined.includes('clientid') || combined.includes('client_id') || combined.includes('client id')) {
-      return 'MjkzZWY0NWEtZTNiNy00YzJkLWI5ZjYtOGE3YmMxZDIzNDU2';
+    // API integration fields (screen 1)
+    if (combined.includes('username') || combined.includes('clientid') || combined.includes('client_id') || combined.includes('client id')) {
+      return config.zscalerClientId;
     }
 
-    if (inputType === 'password' && (combined.includes('clientsecret') || combined.includes('client_secret') || combined.includes('client secret'))) {
-      return 'NGY1ZDYyYzgtOTM0Yi00YWUzLWJhNzItMWQ4ZjdhNjhiOWNm';
+    if (inputType === 'password' || combined.includes('clientsecret') || combined.includes('client_secret') || combined.includes('client secret')) {
+      if (inputType === 'password') {
+        return config.zscalerClientSecret;
+      }
     }
 
-    if (combined.includes('host') || combined.includes('url')) {
-      return 'https://zsapi.zscaler.net';
+    if (combined.includes('scope')) {
+      return config.zscalerScope;
+    }
+
+    if (combined.includes('token') && combined.includes('url')) {
+      return config.zscalerTokenUrl;
+    }
+
+    if (combined.includes('url') && !combined.includes('host') && !combined.includes('category')) {
+      return config.zscalerTokenUrl;
+    }
+
+    if (combined.includes('host')) {
+      return config.zscalerHost;
+    }
+
+    // Workflow config fields (screen 2)
+    if (combined.includes('urlcategory') || combined.includes('configuredname') || combined.includes('category')) {
+      return config.zscalerUrlCategoryName;
+    }
+
+    if (combined.includes('quantity')) {
+      return config.zscalerQuantity;
     }
 
     if (combined.includes('name') && !combined.includes('host') && !combined.includes('user')) {
-      return 'Test Config';
+      return 'ZIA Cloud Service API';
     }
 
     // Default values
-    return inputType === 'password' ? 'test-secret' : 'test-value';
+    return inputType === 'password' ? config.zscalerClientSecret : 'test-value';
   }
 
   /**
@@ -197,25 +220,24 @@ export class AppCatalogPage extends BasePage {
    * Fills in dummy values for all configuration fields and clicks through settings.
    */
   private async configureApiIntegrationIfNeeded(): Promise<void> {
-    // Verify the credential prompt appears — this app requires API credentials
-    // Check for password fields specifically since workflow config (screen 2) only has text fields
-    const passwordInput = this.page.locator('input[type="password"]');
-    try {
-      await passwordInput.first().waitFor({ state: 'visible', timeout: 15000 });
-    } catch (error) {
-      throw new Error('This app should prompt for API credentials');
-    }
-
     let configCount = 0;
     let hasNextSetting = true;
+    let foundPasswordField = false;
 
     // Keep filling configs until we can't find either "Next setting" or more empty fields
     while (hasNextSetting) {
       configCount++;
       this.logger.info(`Configuration screen ${configCount} detected, filling fields...`);
 
+      // Check if this screen has password fields (API credentials)
+      const passwordInputs = this.page.locator('input[type="password"]');
+      const passwordCount = await passwordInputs.count();
+      if (passwordCount > 0) {
+        foundPasswordField = true;
+      }
+
       // Fill visible inputs
-      const inputs = this.page.locator('input[type="text"], input[type="url"], input:not([type="password"]):not([type])');
+      const inputs = this.page.locator('input[type="text"], input[type="url"], input[type="number"], input:not([type="password"]):not([type])');
       const count = await inputs.count();
       this.logger.info(`Found ${count} text input fields`);
 
@@ -233,12 +255,12 @@ export class AppCatalogPage extends BasePage {
       }
 
       // Fill password inputs
-      const passwordInputs = this.page.locator('input[type="password"]');
-      const passwordCount = await passwordInputs.count();
-      this.logger.info(`Found ${passwordCount} password input fields`);
+      const pwdInputs = this.page.locator('input[type="password"]');
+      const pwdCount = await pwdInputs.count();
+      this.logger.info(`Found ${pwdCount} password input fields`);
 
-      for (let i = 0; i < passwordCount; i++) {
-        const input = passwordInputs.nth(i);
+      for (let i = 0; i < pwdCount; i++) {
+        const input = pwdInputs.nth(i);
         if (await input.isVisible()) {
           const name = await input.getAttribute('name') || '';
           const placeholder = await input.getAttribute('placeholder') || '';
@@ -266,6 +288,11 @@ export class AppCatalogPage extends BasePage {
     }
 
     this.logger.info(`Completed ${configCount} configuration screen(s)`);
+
+    // Verify API credentials prompt appeared
+    if (!foundPasswordField) {
+      throw new Error('This app should prompt for API credentials with password fields');
+    }
   }
 
   /**

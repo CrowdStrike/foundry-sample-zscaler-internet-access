@@ -14,7 +14,7 @@ test.describe('Zscaler Internet Access - E2E Tests', () => {
     await workflowsPage.verifyWorkflowRenders('Falcon-Zscaler Integration');
   });
 
-  test('should verify ZIA API integration action is available in workflow builder', async ({ workflowsPage }) => {
+  test('should verify Zscaler API integration actions are available in workflow builder', async ({ workflowsPage }) => {
     await workflowsPage.navigateToWorkflows();
     await workflowsPage.createNewWorkflow();
 
@@ -35,16 +35,16 @@ test.describe('Zscaler Internet Access - E2E Tests', () => {
 
     await workflowsPage.page.waitForLoadState('networkidle');
 
-    // Search for the ZIA Cloud Service API integration action
+    // Search for an action specific to this app's API integration
     const searchBox = workflowsPage.page.getByRole('searchbox').or(workflowsPage.page.getByPlaceholder(/search/i));
-    await searchBox.fill('ZIA Cloud Service API');
+    await searchBox.fill('Push IOCs to ZIA');
 
     await workflowsPage.page.getByText('This may take a few moments').first().waitFor({ state: 'hidden', timeout: 30000 });
     await workflowsPage.page.waitForLoadState('networkidle');
 
-    // Verify the action is visible
-    const actionElement = workflowsPage.page.getByText('ZIA Cloud Service API', { exact: false });
+    // Verify the app-specific action is visible
+    const actionElement = workflowsPage.page.getByText('Push IOCs to ZIA', { exact: false }).first();
     await expect(actionElement).toBeVisible({ timeout: 10000 });
-    console.log('ZIA Cloud Service API integration action verified successfully');
+    console.log('ZIA Cloud Service API "Push IOCs to ZIA" action verified successfully');
   });
 });

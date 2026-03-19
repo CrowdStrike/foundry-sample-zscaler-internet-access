@@ -17,6 +17,15 @@ export class TestConfig {
   // App configuration
   public readonly appName: string;
 
+  // Zscaler API integration
+  public readonly zscalerHost: string;
+  public readonly zscalerClientId: string;
+  public readonly zscalerClientSecret: string;
+  public readonly zscalerScope: string;
+  public readonly zscalerTokenUrl: string;
+  public readonly zscalerUrlCategoryName: string;
+  public readonly zscalerQuantity: string;
+
   // Test configuration
   public readonly defaultTimeout: number;
   public readonly navigationTimeout: number;
@@ -43,6 +52,15 @@ export class TestConfig {
     // App configuration
     this.appName = this.getRequiredEnv('APP_NAME');
 
+    // Zscaler API integration
+    this.zscalerHost = this.getRequiredEnv('ZSCALER_HOST');
+    this.zscalerClientId = this.getRequiredEnv('ZSCALER_CLIENT_ID');
+    this.zscalerClientSecret = this.getRequiredEnv('ZSCALER_CLIENT_SECRET');
+    this.zscalerScope = this.getRequiredEnv('ZSCALER_SCOPE');
+    this.zscalerTokenUrl = this.getRequiredEnv('ZSCALER_TOKEN_URL');
+    this.zscalerUrlCategoryName = process.env.ZSCALER_URL_CATEGORY_NAME || 'CrowdStrike Intel - Foundry';
+    this.zscalerQuantity = process.env.ZSCALER_QUANTITY || '500';
+
     // Test timeouts (configurable defaults - longer in CI due to slower hardware)
     this.defaultTimeout = parseInt(process.env.DEFAULT_TIMEOUT || (this.isCI ? '45000' : '30000'));
     this.navigationTimeout = parseInt(process.env.NAVIGATION_TIMEOUT || (this.isCI ? '30000' : '15000'));
@@ -68,7 +86,12 @@ export class TestConfig {
       'FALCON_USERNAME',
       'FALCON_PASSWORD',
       'FALCON_AUTH_SECRET',
-      'APP_NAME'
+      'APP_NAME',
+      'ZSCALER_HOST',
+      'ZSCALER_CLIENT_ID',
+      'ZSCALER_CLIENT_SECRET',
+      'ZSCALER_SCOPE',
+      'ZSCALER_TOKEN_URL'
     ];
 
     const missing = required.filter(key => !process.env[key]);
