@@ -119,20 +119,20 @@ foundry apps release
 Next, go to **Foundry** > **App catalog**, find your app, and install. During app install, you will be prompted for app configuration:
 
 * (API-Integration) ZIA Cloud Service API credentials:
-  * **Host**: Your Zscaler cloud hostname
-  * **client_id**: Your Zscaler API clientId
-  * **client_secret**: Your Zscaler client secret
-  * **token URL**: Your Zscaler cloud OAuth token endpoint URL 
+  * **Host**: Zscaler cloud hostname
+  * **client_id**: Zscaler API clientId
+  * **client_secret**: Zscaler client secret
+  * **token URL**: Zscaler cloud token endpoint URL 
 
     **Example**: 
-    <p><img width="500px" src="/app_docs/images/api-settings.png?raw=true">
+    <p><img width="500px" src="/app_docs/api-settings.png?raw=true">
 
 * (Workflow) Falcon-Zscaler Integration configuration:
   * **UrlCategoryConfiguredName**: The name of your custom ZIA URL category (e.g., "CrowdStrike Intel - Foundry")
   * **Quantity**: Maximum number of URLs to process. Controls pagination - the  **iterations** function divides this by 100 to process URLs in batches (e.g., quantity of 500 creates 5 batches: offsets values [0, 100, 200, 300, 400])
 
     **Example**:
-    <p><img width="500px" src="/app_docs/images/workflow-setting.png?raw=true">
+    <p><img width="500px" src="/app_docs/workflow-setting.png?raw=true">
 
 > [!TIP]
 > The custom URL category name must match exactly (case-sensitive) with the category you created in Zscaler.
