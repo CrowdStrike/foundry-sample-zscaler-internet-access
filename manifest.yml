@@ -156,5 +156,6 @@ docs:
   path: app_docs
   entrypoint: README.md
   links:
-    - images/api-settings.png
-    - images/workflow-setting.png
+    - images/apiSettings.png
+    - images/workflowSetting.png
+    - images/ngsiemSearch.png

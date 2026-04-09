@@ -35,18 +35,22 @@ When you install this app, you will be prompted for app configuration. Your conf
     * **client_secret**: Your Zscaler client secret
     * **token URL**: Your Zscaler cloud OAuth token endpoint URL
 
-      **Example**:
-      <p><img width="500px" src="/app_docs/images/api-settings.png?raw=true">
+![Example](images/apiSettings.png)
 
 * (Workflow) 'Falcon-Zscaler Integration' configuration:
     * **UrlCategoryConfiguredName**: The name of your custom ZIA URL category (e.g., "CrowdStrike Intel - Foundry")
     * **Quantity**: Maximum number of URLs to process. Controls pagination - the  **iterations** function divides this by 100 to process URLs in batches (e.g., quantity of 500 creates 5 batches: offsets values [0, 100, 200, 300, 400])
 
-      **Example**:
-      <p><img width="500px" src="/app_docs/images/workflow-setting.png?raw=true">
+![Example](images/workflowSetting.png)
 
 > [!TIP]
 > The custom URL category name must match exactly (case-sensitive) with the category you created in Zscaler.
+
+The workflow serves as the main execution engine of the application, orchestrates the automated process of pulling high-confidence malicious URLs from Falcon Intelligence, looking them up in Zscaler to check categorization, filtering uncategorized/unknown URLs, and pushing them to a custom ZIA URL category for inline blocking. During each iteration, it writes a summary record to LogScale that can be leveraged to create NG-SIEM dashboards and alerts for monitoring synchronization status.
+
+The records written to LogScale by the app can be fetched as shown below from NG SIEM.
+
+![NGSIEM advanced event search](images/ngsiemSearch.png)
 
 ## Usage
 
