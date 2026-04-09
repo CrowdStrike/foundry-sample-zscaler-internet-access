@@ -156,5 +156,5 @@ docs:
   path: app_docs
   entrypoint: README.md
   links:
-    - api-settings.png
-    - workflow-setting.png
+    - apiSettings.png
+    - workflowSetting.png
