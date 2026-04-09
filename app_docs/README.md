@@ -35,15 +35,13 @@ When you install this app, you will be prompted for app configuration. Your conf
     * **client_secret**: Your Zscaler client secret
     * **token URL**: Your Zscaler cloud OAuth token endpoint URL
 
-      **Example**:
-      ![Example](images/apiSettings.png)
+![Example](images/apiSettings.png)
 
 * (Workflow) 'Falcon-Zscaler Integration' configuration:
     * **UrlCategoryConfiguredName**: The name of your custom ZIA URL category (e.g., "CrowdStrike Intel - Foundry")
     * **Quantity**: Maximum number of URLs to process. Controls pagination - the  **iterations** function divides this by 100 to process URLs in batches (e.g., quantity of 500 creates 5 batches: offsets values [0, 100, 200, 300, 400])
 
-      **Example**:
-      ![Example](images/workflowSetting.png)
+![Example](images/workflowSetting.png)
 
 > [!TIP]
 > The custom URL category name must match exactly (case-sensitive) with the category you created in Zscaler.
