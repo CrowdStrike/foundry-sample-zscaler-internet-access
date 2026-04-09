@@ -48,6 +48,12 @@ When you install this app, you will be prompted for app configuration. Your conf
 > [!TIP]
 > The custom URL category name must match exactly (case-sensitive) with the category you created in Zscaler.
 
+The workflow serves as the main execution engine of the application, orchestrates the automated process of pulling high-confidence malicious URLs from Falcon Intelligence, looking them up in Zscaler to check categorization, filtering uncategorized/unknown URLs, and pushing them to a custom ZIA URL category for inline blocking. During each iteration, it writes a summary record to LogScale that can be leveraged to create NG-SIEM dashboards and alerts for monitoring synchronization status.
+
+The records written to LogScale by the app can be fetched as shown below from NG SIEM.
+
+![NGSIEM advanced event search](images/ngsiemSearch.png)
+
 ## Usage
 
 After installing the app, go to **Fusion SOAR** > **Workflows** to see the workflow for **Falcon-Zscaler Integration**. You can run it on-demand to immediately sync malicious URLs or schedule it to run automatically.
