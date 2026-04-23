@@ -20,7 +20,7 @@ setup('install Zscaler Internet Access app', async ({ page }) => {
       await page.getByLabel('UrlCategoryConfiguredName').fill(zscalerUrlCategoryName);
       await page.getByLabel('Quantity').fill(zscalerQuantity);
       await nextButton.click();
-      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
 
       // Screen 2: ZIA Cloud Service API — OAuth2 credentials
       await page.getByLabel('Name').fill('ZIA Cloud Service API');
