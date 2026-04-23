@@ -1,22 +1,33 @@
-import { test, test as setup } from '../src/fixtures';
+import { test as setup } from '@playwright/test';
+import { AppCatalogPage, config } from '@crowdstrike/foundry-playwright';
 
-setup('install Zscaler Internet Access app', async ({ appCatalogPage, appName }) => {
-  // Extend timeout for this test - install with API integration config takes time
-  test.setTimeout(300000); // 5 minutes
+const zscalerHost = process.env.ZSCALER_HOST!;
+const zscalerClientId = process.env.ZSCALER_CLIENT_ID!;
+const zscalerClientSecret = process.env.ZSCALER_CLIENT_SECRET!;
+const zscalerTokenUrl = process.env.ZSCALER_TOKEN_URL!;
+const zscalerUrlCategoryName = process.env.ZSCALER_URL_CATEGORY_NAME!;
+const zscalerQuantity = process.env.ZSCALER_QUANTITY!;
 
-  // Check if app is already installed (this navigates to the app page)
-  const isInstalled = await appCatalogPage.isAppInstalled(appName);
+setup('install Zscaler Internet Access app', async ({ page }) => {
+  setup.setTimeout(300000);
 
-  if (!isInstalled) {
-    console.log(`App '${appName}' is not installed. Installing with Zscaler credentials...`);
+  const catalog = new AppCatalogPage(page);
+  await catalog.installApp(config.appName, {
+    configureSettings: async (page) => {
+      const nextButton = page.getByRole('button', { name: 'Next setting' });
 
-    // Install the app (fills in Zscaler API integration credentials from env vars)
-    const installed = await appCatalogPage.installApp(appName);
+      // Screen 1: Workflow config — UrlCategoryConfiguredName, Quantity
+      await page.getByLabel('UrlCategoryConfiguredName').fill(zscalerUrlCategoryName);
+      await page.getByLabel('Quantity').fill(zscalerQuantity);
+      await nextButton.click();
+      await page.waitForLoadState('networkidle').catch(() => {});
 
-    if (!installed) {
-      throw new Error(`Failed to install app '${appName}'`);
-    }
-  } else {
-    console.log(`App '${appName}' is already installed`);
-  }
+      // Screen 2: ZIA Cloud Service API — OAuth2 credentials
+      await page.getByLabel('Name').fill('ZIA Cloud Service API');
+      await page.getByLabel('Host').fill(zscalerHost);
+      await page.getByLabel('client_id').fill(zscalerClientId);
+      await page.getByLabel('client_secret').fill(zscalerClientSecret);
+      await page.getByLabel('Token URL').fill(zscalerTokenUrl);
+    },
+  });
 });
