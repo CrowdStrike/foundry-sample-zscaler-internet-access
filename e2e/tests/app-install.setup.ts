@@ -16,18 +16,18 @@ setup('install Zscaler Internet Access app', async ({ page }) => {
     configureSettings: async (page) => {
       const nextButton = page.getByRole('button', { name: 'Next setting' });
 
-      // Screen 1: Workflow config — UrlCategoryConfiguredName, Quantity
-      await page.getByLabel('UrlCategoryConfiguredName').fill(zscalerUrlCategoryName);
-      await page.getByLabel('Quantity').fill(zscalerQuantity);
-      await nextButton.click();
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-
-      // Screen 2: ZIA Cloud Service API — OAuth2 credentials
+      // Screen 1: ZIA Cloud Service API — OAuth2 credentials
       await page.getByLabel('Name').fill('ZIA Cloud Service API');
       await page.getByLabel('Host').fill(zscalerHost);
       await page.getByLabel('client_id').fill(zscalerClientId);
       await page.getByLabel('client_secret').fill(zscalerClientSecret);
       await page.getByLabel('Token URL').fill(zscalerTokenUrl);
+      await nextButton.click();
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+
+      // Screen 2: Workflow config — UrlCategoryConfiguredName, Quantity
+      await page.getByLabel('UrlCategoryConfiguredName').fill(zscalerUrlCategoryName);
+      await page.getByLabel('Quantity').fill(zscalerQuantity);
     },
   });
 });
