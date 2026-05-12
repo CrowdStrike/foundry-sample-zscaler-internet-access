@@ -16,18 +16,25 @@ setup('install Zscaler Internet Access app', async ({ page }) => {
     configureSettings: async (page) => {
       const nextButton = page.getByRole('button', { name: 'Next setting' });
 
-      // Screen 1: Workflow config — UrlCategoryConfiguredName, Quantity
-      await page.getByLabel('UrlCategoryConfiguredName').fill(zscalerUrlCategoryName);
-      await page.getByLabel('Quantity').fill(zscalerQuantity);
-      await nextButton.click();
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      // Fill each settings screen in whatever order the app presents them.
+      // Detect the current screen by checking for a unique field.
+      for (let screen = 0; screen < 2; screen++) {
+        if (await page.getByLabel('UrlCategoryConfiguredName').isVisible({ timeout: 3000 }).catch(() => false)) {
+          await page.getByLabel('UrlCategoryConfiguredName').fill(zscalerUrlCategoryName);
+          await page.getByLabel('Quantity').fill(zscalerQuantity);
+        } else {
+          await page.getByLabel('Name').fill('ZIA Cloud Service API');
+          await page.getByLabel('Host').fill(zscalerHost);
+          await page.getByLabel('client_id').fill(zscalerClientId);
+          await page.getByLabel('client_secret').fill(zscalerClientSecret);
+          await page.getByLabel('Token URL').fill(zscalerTokenUrl);
+        }
 
-      // Screen 2: ZIA Cloud Service API — OAuth2 credentials
-      await page.getByLabel('Name').fill('ZIA Cloud Service API');
-      await page.getByLabel('Host').fill(zscalerHost);
-      await page.getByLabel('client_id').fill(zscalerClientId);
-      await page.getByLabel('client_secret').fill(zscalerClientSecret);
-      await page.getByLabel('Token URL').fill(zscalerTokenUrl);
+        if (await nextButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await nextButton.click();
+          await page.waitForLoadState('domcontentloaded').catch(() => {});
+        }
+      }
     },
   });
 });
