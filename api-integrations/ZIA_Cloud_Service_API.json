@@ -15,9 +15,6 @@
     }
   },
   "info": {
-    "contact": {
-      "email": "ssharma12@crowdstrike.com"
-    },
     "description": "ZIA Cloud Service API",
     "title": "ZIA Cloud Service API",
     "version": ""
