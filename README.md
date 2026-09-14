@@ -31,7 +31,7 @@ This app illustrates the following functionality amongst other components:
 
 ## Prerequisites
 
-* Python 3.13+ (needed if modifying the app's functions). See [Python For Beginners](https://www.python.org/about/gettingstarted/) for installation instructions.
+* Python 3.14+ (needed if modifying the app's functions). See [Python For Beginners](https://www.python.org/about/gettingstarted/) for installation instructions.
 * The Foundry CLI (instructions below)
 * Zscaler Internet Access Configuration
 
