@@ -26,7 +26,6 @@ auth:
     scopes:
         - falconx-indicators:read
         - workflow:read
-        - iocs:write
         - app-logs:write
         - workflow:write
         - api-integrations:read
