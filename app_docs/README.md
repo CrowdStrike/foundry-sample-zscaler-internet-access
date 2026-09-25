@@ -25,6 +25,26 @@ This app illustrates the following functionality amongst other components:
     * Push IOCs to Zscaler Internet Access (ZIA)
 * **Workflow templates.** Orchestrates the automated process of pulling high-confidence malicious URLs from Falcon Intelligence, looking them up in Zscaler to check categorization, filtering uncategorized/unknown URLs, and pushing them to a custom ZIA URL category for inline blocking.
 
+## Add an OAuth scope (if required)
+
+Some identity providers require a scope for the OAuth 2.0 client credentials flow. Microsoft Entra ID is one of them. If yours does, add the scope to the app before you install it, because the install screen only lets you select scopes that are already defined in the app.
+
+1. Go to **Foundry** > **App manager**, open this app, and click **Edit app**.
+2. Open the **ZIA Cloud Service API** integration and click **Edit integration**.
+3. In **Scopes**, enter the scope your Zscaler configuration requires as a JSON object, using the scope as both the key and the value. For example:
+
+    ```json
+    {
+      "<your-scope>": "<your-scope>"
+    }
+    ```
+
+    If **Save API integration** stays disabled after you paste, type and delete a character in **Scopes**, then click outside the box.
+4. Save the integration, then deploy and release the app.
+5. When you install the app, select the scope in the **Permissions** field.
+
+For Entra ID, the token URL is `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token`. You can find your tenant ID in the Azure Portal under **Microsoft Entra ID** > **Overview**.
+
 ## Install App Configuration
 
 When you install this app, you will be prompted for app configuration. Your configuration should look similar to the following.
