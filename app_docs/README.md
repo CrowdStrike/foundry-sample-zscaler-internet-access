@@ -31,13 +31,15 @@ Some identity providers require a scope for the OAuth 2.0 client credentials flo
 
 1. Go to **Foundry** > **App manager**, open this app, and click **Edit app**.
 2. Open the **ZIA Cloud Service API** integration and click **Edit integration**.
-3. In **Scopes**, enter the scope your Zscaler configuration requires as a JSON object, using the scope as both the key and the value. For example:
+3. In **Scopes**, enter the scope your Zscaler configuration requires as a JSON object. The key is the scope that's sent to your identity provider, and the value is a description that you can set to anything. For example:
 
     ```json
     {
-      "<your-scope>": "<your-scope>"
+      "<your-scope>": "ZIA API access"
     }
     ```
+
+    For Entra ID, scopes use the format `<application ID URI>/.default` (for example, `api://<application-id>/.default`), where the application ID URI comes from the app registration for your Zscaler API access. It's different for each tenant.
 
     If **Save API integration** stays disabled after you paste, type and delete a character in **Scopes**, then click outside the box.
 4. Save the integration, then deploy and release the app.

@@ -117,15 +117,15 @@ foundry apps release
 ```
 
 > [!NOTE]
-> Some identity providers require a scope for the OAuth 2.0 client credentials flow. Microsoft Entra ID is one of them. If yours does, add the scope before you install, because the install screen only lets you select scopes that are already defined in the app. You can add it in App builder, as described in the [app docs](app_docs/README.md), or add it to `components.securitySchemes.oauth2.flows.clientCredentials.scopes` in `api-integrations/ZIA_Cloud_Service_API.json` and deploy and release again. For example:
+> Some identity providers require a scope for the OAuth 2.0 client credentials flow. Microsoft Entra ID is one of them. If yours does, add the scope before you install, because the install screen only lets you select scopes that are already defined in the app. You can add it in App builder, as described in the [app docs](app_docs/README.md), or add it to `components.securitySchemes.oauth2.flows.clientCredentials.scopes` in `api-integrations/ZIA_Cloud_Service_API.json` and deploy and release again. The key is the scope that's sent to your identity provider, and the value is a description that you can set to anything. For example:
 >
 > ```json
 > "scopes": {
->   "<your-scope>": "<your-scope>"
+>   "<your-scope>": "ZIA API access"
 > }
 > ```
 >
-> When you install the app, select the scope in the **Permissions** field. For Entra ID, the token URL is `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token`.
+> When you install the app, select the scope in the **Permissions** field. For Entra ID, scopes use the format `<application ID URI>/.default`, where the application ID URI comes from your app registration, and the token URL is `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token`.
 
 Next, go to **Foundry** > **App catalog**, find your app, and install. During app install, you will be prompted for app configuration:
 
